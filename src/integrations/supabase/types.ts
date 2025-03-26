@@ -166,7 +166,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_user_credits: {
+        Args: {
+          p_user_id: string
+          p_amount: number
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

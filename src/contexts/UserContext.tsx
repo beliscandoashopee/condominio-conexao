@@ -25,7 +25,7 @@ type CreditCost = {
   id: string;
   action_type: string;
   cost: number;
-  description: string;
+  description: string | null;
 };
 
 type UserCredits = {

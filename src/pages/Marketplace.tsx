@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, X, Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -28,6 +28,17 @@ import {
   SheetClose,
   SheetFooter,
 } from "@/components/ui/sheet";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -40,18 +51,21 @@ import { useUser } from "@/contexts/UserContext";
 const Marketplace = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, credits, creditPackages, creditCosts, hasEnoughCredits, getCreditCost, purchaseCredits, spendCredits, fetchCredits } = useUser();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
   const [priceRange, setPriceRange] = useState<[number | null, number | null]>([null, null]);
   const [sortOption, setSortOption] = useState("recent");
+  const [selectedCreditTab, setSelectedCreditTab] = useState("buy");
   
   const [adTitle, setAdTitle] = useState("");
   const [adDescription, setAdDescription] = useState("");
   const [adPrice, setAdPrice] = useState("");
   const [adCategory, setAdCategory] = useState("");
+  const [adHighlighted, setAdHighlighted] = useState(false);
   
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -64,6 +78,10 @@ const Marketplace = () => {
     
     if (newParam === "true" && user) {
       setIsCreateDialogOpen(true);
+    }
+
+    if (user) {
+      fetchCredits();
     }
   }, [location.search, user]);
   
@@ -111,10 +129,29 @@ const Marketplace = () => {
     });
   };
   
-  const handleCreateAd = () => {
+  const handleCreateAd = async () => {
+    if (!user) {
+      toast.error("Você precisa estar logado para criar um anúncio.");
+      return;
+    }
+
     if (!adTitle || !adDescription || !adCategory) {
       toast.error("Por favor, preencha todos os campos obrigatórios.");
       return;
+    }
+    
+    const canCreateAd = await spendCredits("create_ad");
+    if (!canCreateAd) {
+      setIsCreditDialogOpen(true);
+      return;
+    }
+
+    if (adHighlighted) {
+      const canHighlightAd = await spendCredits("highlight_ad");
+      if (!canHighlightAd) {
+        toast.error("Você não tem créditos suficientes para destacar o anúncio.");
+        return;
+      }
     }
     
     toast.success("Anúncio criado com sucesso!");
@@ -124,6 +161,7 @@ const Marketplace = () => {
     setAdDescription("");
     setAdPrice("");
     setAdCategory("");
+    setAdHighlighted(false);
     
     const params = new URLSearchParams(location.search);
     params.delete("new");
@@ -131,6 +169,13 @@ const Marketplace = () => {
       pathname: location.pathname,
       search: params.toString()
     });
+  };
+  
+  const handlePurchaseCredits = async (packageId: string) => {
+    const success = await purchaseCredits(packageId);
+    if (success) {
+      setSelectedCreditTab("summary");
+    }
   };
   
   const clearFilters = () => {
@@ -156,13 +201,34 @@ const Marketplace = () => {
               </p>
             </div>
             
-            <Button 
-              onClick={() => setIsCreateDialogOpen(true)} 
-              className="bg-primary hover:bg-primary/90 text-white"
-            >
-              <Plus size={16} className="mr-2" />
-              Criar anúncio
-            </Button>
+            <div className="flex items-center gap-3">
+              {user && credits && (
+                <div className="bg-secondary rounded-md px-3 py-1.5 text-sm">
+                  <span className="font-semibold">{credits.balance}</span> créditos disponíveis
+                </div>
+              )}
+              
+              <Button 
+                onClick={() => {
+                  if (!user) {
+                    toast.error("Você precisa estar logado para criar um anúncio.");
+                    navigate("/auth");
+                    return;
+                  }
+                  
+                  if (!hasEnoughCredits("create_ad")) {
+                    setIsCreditDialogOpen(true);
+                    return;
+                  }
+                  
+                  setIsCreateDialogOpen(true);
+                }} 
+                className="bg-primary hover:bg-primary/90 text-white"
+              >
+                <Plus size={16} className="mr-2" />
+                Criar anúncio
+              </Button>
+            </div>
           </div>
           
           <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -375,6 +441,40 @@ const Marketplace = () => {
                 </Select>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="highlight" className="font-medium">Destacar anúncio</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Seu anúncio aparecerá no topo da lista por 7 dias
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">
+                    {getCreditCost("highlight_ad")} créditos
+                  </span>
+                  <Button
+                    type="button"
+                    variant={adHighlighted ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      if (!hasEnoughCredits("highlight_ad") && !adHighlighted) {
+                        toast.error("Você não tem créditos suficientes para destacar o anúncio.");
+                        return;
+                      }
+                      setAdHighlighted(!adHighlighted);
+                    }}
+                  >
+                    {adHighlighted ? (
+                      <>
+                        <Sparkles size={14} className="mr-1" /> Ativo
+                      </>
+                    ) : "Ativar"}
+                  </Button>
+                </div>
+              </div>
+            </div>
             
             <div className="space-y-2">
               <Label>Imagens</Label>
@@ -387,6 +487,15 @@ const Marketplace = () => {
                 </p>
               </div>
             </div>
+
+            <Alert className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Custo</AlertTitle>
+              <AlertDescription>
+                Publicar este anúncio custará {getCreditCost("create_ad")} créditos
+                {adHighlighted ? ` + ${getCreditCost("highlight_ad")} créditos para destacá-lo` : ""}.
+              </AlertDescription>
+            </Alert>
           </div>
           
           <DialogFooter>
@@ -395,6 +504,85 @@ const Marketplace = () => {
             </Button>
             <Button onClick={handleCreateAd}>Publicar anúncio</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCreditDialogOpen} onOpenChange={setIsCreditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Créditos</DialogTitle>
+            <DialogDescription>
+              Gerencie seus créditos para anunciar e destacar produtos no marketplace.
+            </DialogDescription>
+          </DialogHeader>
+
+          <Tabs value={selectedCreditTab} onValueChange={setSelectedCreditTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="buy">Comprar créditos</TabsTrigger>
+              <TabsTrigger value="summary">Resumo</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="buy" className="mt-4">
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Escolha um pacote de créditos para continuar utilizando o marketplace:
+                </p>
+
+                <div className="grid gap-4">
+                  {creditPackages.map((pkg) => (
+                    <div key={pkg.id} className="border rounded-lg p-4 hover:border-primary transition-colors">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-medium">{pkg.name}</h3>
+                          <p className="text-2xl font-bold mt-1">
+                            {pkg.credits} <span className="text-sm font-normal text-muted-foreground">créditos</span>
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Preço</p>
+                          <p className="text-lg font-semibold">R$ {pkg.price.toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <Button 
+                        onClick={() => handlePurchaseCredits(pkg.id)} 
+                        className="w-full mt-3"
+                      >
+                        Comprar
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="summary" className="mt-4">
+              <div className="space-y-4">
+                <div className="bg-secondary/50 rounded-lg p-4">
+                  <h3 className="font-medium mb-2">Seu saldo</h3>
+                  <p className="text-3xl font-bold">{credits?.balance || 0} créditos</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="font-medium">Custos das ações</h3>
+                  <div className="space-y-2">
+                    {creditCosts.map((cost) => (
+                      <div key={cost.id} className="flex justify-between text-sm">
+                        <span>{cost.description || cost.action_type}</span>
+                        <span className="font-medium">{cost.cost} créditos</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={() => setSelectedCreditTab("buy")} 
+                  className="w-full"
+                >
+                  Comprar mais créditos
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>
