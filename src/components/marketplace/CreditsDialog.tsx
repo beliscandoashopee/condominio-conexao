@@ -19,6 +19,7 @@ import { AlertCircle, Loader2, History } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { useCredits } from "@/contexts/credits";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CreditsDialogProps {
   isOpen: boolean;
@@ -79,9 +80,34 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
 
               <div className="grid gap-4">
                 {isLoading ? (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
+                  <>
+                    <div className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <Skeleton className="h-5 w-20 mb-2" />
+                          <Skeleton className="h-8 w-24" />
+                        </div>
+                        <div className="text-right">
+                          <Skeleton className="h-4 w-12 mb-2 ml-auto" />
+                          <Skeleton className="h-6 w-20 ml-auto" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-9 w-full mt-3" />
+                    </div>
+                    <div className="border rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <Skeleton className="h-5 w-24 mb-2" />
+                          <Skeleton className="h-8 w-28" />
+                        </div>
+                        <div className="text-right">
+                          <Skeleton className="h-4 w-12 mb-2 ml-auto" />
+                          <Skeleton className="h-6 w-20 ml-auto" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-9 w-full mt-3" />
+                    </div>
+                  </>
                 ) : (
                   creditPackages.slice(0, 2).map((pkg) => (
                     <div key={pkg.id} className="border rounded-lg p-4 hover:border-primary transition-colors">
@@ -117,9 +143,7 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
               <div className="bg-secondary/50 rounded-lg p-4">
                 <h3 className="font-medium mb-2">Seu saldo</h3>
                 {isLoading ? (
-                  <div className="flex justify-center py-2">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
+                  <Skeleton className="h-10 w-32" />
                 ) : (
                   <p className="text-3xl font-bold">{credits?.balance || 0} créditos</p>
                 )}
@@ -128,12 +152,25 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
               <div className="space-y-2">
                 <h3 className="font-medium">Custos das ações</h3>
                 <div className="space-y-2">
-                  {creditCosts.map((cost) => (
-                    <div key={cost.id} className="flex justify-between text-sm">
-                      <span>{cost.description || cost.action_type}</span>
-                      <span className="font-medium">{cost.cost} créditos</span>
-                    </div>
-                  ))}
+                  {isLoading ? (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                    </>
+                  ) : (
+                    creditCosts.map((cost) => (
+                      <div key={cost.id} className="flex justify-between text-sm">
+                        <span>{cost.description || cost.action_type}</span>
+                        <span className="font-medium">{cost.cost} créditos</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
               

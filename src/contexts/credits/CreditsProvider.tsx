@@ -16,20 +16,32 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [creditCosts, setCreditCosts] = useState<CreditCost[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const { hasEnoughCredits, getCreditCost } = useCreditsUtils(credits, creditCosts);
 
   useEffect(() => {
     // Buscar pacotes de créditos e custos das ações (não dependem do usuário)
-    fetchCreditPackages();
-    fetchCreditCosts();
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          fetchCreditPackages(),
+          fetchCreditCosts()
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadInitialData();
   }, []);
 
   const fetchCredits = async (userId: string) => {
     if (!userId) return;
     
+    setIsLoading(true);
     setError(null);
     try {
       const userCredits = await fetchUserCredits(userId);
@@ -42,6 +54,8 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     } catch (err: any) {
       console.error("Erro ao buscar créditos:", err?.message);
       setError("Não foi possível carregar seus créditos.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -49,8 +63,10 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     try {
       const packages = await fetchAllCreditPackages();
       setCreditPackages(packages);
+      return packages;
     } catch (err: any) {
       console.error("Erro ao buscar pacotes de crédito:", err?.message);
+      return [];
     }
   };
 
@@ -58,8 +74,10 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     try {
       const costs = await fetchAllCreditCosts();
       setCreditCosts(costs);
+      return costs;
     } catch (err: any) {
       console.error("Erro ao buscar custos das ações:", err?.message);
+      return [];
     }
   };
 

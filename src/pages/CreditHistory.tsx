@@ -18,6 +18,11 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { 
+  CreditBalanceSkeleton, 
+  CreditTransactionItemSkeleton, 
+  CreditTransactionTableSkeleton 
+} from "@/components/credits/CreditTransactionSkeleton";
 
 // Define the transaction type
 interface CreditTransaction {
@@ -102,38 +107,34 @@ const CreditHistory = () => {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
             {/* Current balance card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Saldo atual
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingCredits ? (
-                  <div className="flex justify-center items-center h-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : (
+            {isLoadingCredits ? (
+              <CreditBalanceSkeleton />
+            ) : (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Saldo atual
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="text-3xl font-bold">
                     {credits?.balance || 0} créditos
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Last purchase card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Última compra
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : (
+            {isLoading ? (
+              <CreditTransactionItemSkeleton />
+            ) : (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Última compra
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div>
                     {transactions.filter(t => t.type === "purchase")[0] ? (
                       <>
@@ -151,23 +152,21 @@ const CreditHistory = () => {
                       </div>
                     )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Last spend card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Último gasto
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : (
+            {isLoading ? (
+              <CreditTransactionItemSkeleton />
+            ) : (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Último gasto
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div>
                     {transactions.filter(t => t.type === "spend")[0] ? (
                       <>
@@ -185,9 +184,9 @@ const CreditHistory = () => {
                       </div>
                     )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           <div className="mt-6">
@@ -197,9 +196,7 @@ const CreditHistory = () => {
             </div>
 
             {isLoading ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
+              <CreditTransactionTableSkeleton />
             ) : error ? (
               <div className="text-center py-8 text-muted-foreground">
                 {error}
