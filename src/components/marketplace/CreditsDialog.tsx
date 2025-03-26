@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
+import { useCredits } from "@/contexts/CreditsContext";
 
 interface CreditsDialogProps {
   isOpen: boolean;
@@ -27,11 +28,13 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
   onOpenChange,
   defaultTab = "buy"
 }) => {
-  const { credits, creditPackages, creditCosts, purchaseCredits } = useUser();
+  const { user } = useUser();
+  const { credits, creditPackages, creditCosts, purchaseCredits } = useCredits();
   const [selectedTab, setSelectedTab] = React.useState(defaultTab);
   
   const handlePurchaseCredits = async (packageId: string) => {
-    const success = await purchaseCredits(packageId);
+    if (!user) return;
+    const success = await purchaseCredits(packageId, user.id);
     if (success) {
       setSelectedTab("summary");
     }

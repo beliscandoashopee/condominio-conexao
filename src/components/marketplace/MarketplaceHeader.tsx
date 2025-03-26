@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
+import { useCredits } from "@/contexts/CreditsContext";
 
 interface MarketplaceHeaderProps {
   onCreateAdClick: () => void;
@@ -16,7 +17,8 @@ const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
   onCreditDialogOpen,
 }) => {
   const navigate = useNavigate();
-  const { user, credits, hasEnoughCredits } = useUser();
+  const { user } = useUser();
+  const { credits, hasEnoughCredits } = useCredits();
 
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">

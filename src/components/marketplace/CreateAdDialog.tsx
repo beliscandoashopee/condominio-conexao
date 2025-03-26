@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { categories } from "@/data/mockData";
 import { useUser } from "@/contexts/UserContext";
+import { useCredits } from "@/contexts/CreditsContext";
 
 interface CreateAdDialogProps {
   isOpen: boolean;
@@ -42,7 +43,8 @@ const CreateAdDialog: React.FC<CreateAdDialogProps> = ({
   onCreditDialogOpen,
 }) => {
   const navigate = useNavigate();
-  const { user, spendCredits, hasEnoughCredits, getCreditCost } = useUser();
+  const { user } = useUser();
+  const { spendCredits, hasEnoughCredits, getCreditCost } = useCredits();
   
   const [adTitle, setAdTitle] = useState("");
   const [adDescription, setAdDescription] = useState("");
@@ -61,7 +63,7 @@ const CreateAdDialog: React.FC<CreateAdDialogProps> = ({
       return;
     }
     
-    const canCreateAd = await spendCredits("create_ad");
+    const canCreateAd = await spendCredits("create_ad", user.id);
     if (!canCreateAd) {
       onOpenChange(false);
       onCreditDialogOpen();
@@ -69,7 +71,7 @@ const CreateAdDialog: React.FC<CreateAdDialogProps> = ({
     }
 
     if (adHighlighted) {
-      const canHighlightAd = await spendCredits("highlight_ad");
+      const canHighlightAd = await spendCredits("highlight_ad", user.id);
       if (!canHighlightAd) {
         toast.error("Você não tem créditos suficientes para destacar o anúncio.");
         return;

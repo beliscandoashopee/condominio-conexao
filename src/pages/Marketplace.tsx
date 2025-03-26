@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import CategoryFilter from "@/components/CategoryFilter";
 import { advertisements } from "@/data/mockData";
 import { useUser } from "@/contexts/UserContext";
+import { useCredits } from "@/contexts/CreditsContext";
 
 // Componentes refatorados
 import MarketplaceHeader from "@/components/marketplace/MarketplaceHeader";
@@ -17,7 +18,8 @@ import AdList from "@/components/marketplace/AdList";
 const Marketplace = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, fetchCredits } = useUser();
+  const { user } = useUser();
+  const { fetchCredits } = useCredits();
   
   // Estados locais
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,7 +44,7 @@ const Marketplace = () => {
     }
 
     if (user) {
-      fetchCredits();
+      fetchCredits(user.id);
     }
   }, [location.search, user, fetchCredits]);
   
