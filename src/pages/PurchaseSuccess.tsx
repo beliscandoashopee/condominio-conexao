@@ -140,8 +140,8 @@ const PurchaseSuccess = () => {
             )}
             
             {paymentStatus === 'error' && !error && (
-              <Alert variant="warning" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
+              <Alert variant="default" className="mb-6 border-amber-200 bg-amber-50">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
                 <AlertTitle>Aguardando confirmação</AlertTitle>
                 <AlertDescription>
                   O pagamento pode levar alguns minutos para ser processado pelo sistema financeiro.
