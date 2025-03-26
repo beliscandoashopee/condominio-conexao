@@ -1,39 +1,38 @@
 
 import React from "react";
-import { Link } from "react-router-dom";
-import { LucideIcon } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { RouteConfig } from "./types";
 
 interface NavLinkProps {
-  to: string;
-  icon: LucideIcon;
-  isActive: boolean;
-  children: React.ReactNode;
+  route: RouteConfig;
   onClick?: () => void;
+  isActive: (path: string) => boolean;
   className?: string;
+  iconOnly?: boolean;
 }
 
-export const NavLink = ({ 
-  to, 
-  icon: Icon, 
-  isActive, 
-  children, 
+export const NavLink: React.FC<NavLinkProps> = ({
+  route,
   onClick,
-  className 
-}: NavLinkProps) => {
-  const baseClasses = "flex items-center transition-all duration-300";
-  const desktopClasses = "px-4 py-2 rounded-full";
-  const mobileClasses = "px-4 py-3 rounded-lg";
-  
-  const activeClasses = isActive
-    ? "bg-primary text-white font-medium"
-    : "text-foreground/80 hover:bg-secondary hover:text-foreground";
-  
-  const classes = `${baseClasses} ${className?.includes("px-4 py-3") ? mobileClasses : desktopClasses} ${activeClasses} ${className || ""}`;
-
+  isActive,
+  className,
+  iconOnly = false,
+}) => {
   return (
-    <Link to={to} onClick={onClick} className={classes}>
-      <Icon size={className?.includes("px-4 py-3") ? 20 : 18} className={className?.includes("px-4 py-3") ? "mr-3" : "mr-2"} />
-      <span className={className?.includes("px-4 py-3") ? "text-lg" : ""}>{children}</span>
+    <Link
+      to={route.path}
+      onClick={onClick}
+      className={cn(
+        "flex items-center px-3 py-2 rounded-md transition-colors hover:bg-accent hover:text-accent-foreground",
+        isActive(route.path) && "bg-accent/60 text-accent-foreground font-medium",
+        className
+      )}
+    >
+      {route.icon && <route.icon className={cn("h-5 w-5", !iconOnly && "mr-2")} />}
+      {!iconOnly && <span>{route.name}</span>}
     </Link>
   );
 };
+
+export default NavLink;
