@@ -12,6 +12,7 @@ type UserProfile = {
   avatar: string;
   apartment: string;
   block: string;
+  role: 'user' | 'admin';
 };
 
 type UserContextType = {

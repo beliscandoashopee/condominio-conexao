@@ -6,11 +6,12 @@ import {
   ShoppingBag, 
   User, 
   MessageSquare, 
-  Plus, 
+  Plus,
   Menu,
   X,
   LogOut,
-  LogIn
+  LogIn,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
@@ -35,6 +36,8 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+
+  const isAdmin = profile?.role === "admin";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -95,6 +98,20 @@ const Navbar = () => {
             </Link>
           ))}
           
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className={`flex items-center px-4 py-2 rounded-full transition-all duration-300 ${
+                isActive("/admin")
+                  ? "bg-primary text-white font-medium scale-105"
+                  : "text-foreground/80 hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <Settings size={18} className="mr-2" />
+              <span>Admin</span>
+            </Link>
+          )}
+          
           {user ? (
             <>
               <Button asChild className="ml-2 rounded-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-md hover:shadow-lg transition-all">
@@ -153,6 +170,21 @@ const Navbar = () => {
                   </Link>
                 ))}
                 
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setOpen(false)}
+                    className={`flex items-center px-4 py-3 rounded-lg transition-all duration-300 ${
+                      isActive("/admin")
+                        ? "bg-primary text-white font-medium"
+                        : "text-foreground/80 hover:bg-secondary hover:text-foreground"
+                    }`}
+                  >
+                    <Settings size={20} className="mr-3" />
+                    <span className="text-lg">Admin</span>
+                  </Link>
+                )}
+                
                 {user ? (
                   <>
                     <Button asChild className="mt-4 bg-gradient-to-r from-primary to-blue-600 text-white py-6 shadow-md">
@@ -199,6 +231,7 @@ const Navbar = () => {
                       <p className="font-medium">{profile.name}</p>
                       <p className="text-sm text-muted-foreground">
                         {profile.apartment && profile.block ? `Apto ${profile.apartment} · Bloco ${profile.block}` : "Usuário"}
+                        {isAdmin && <span className="ml-2 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs">Admin</span>}
                       </p>
                     </div>
                   </div>
