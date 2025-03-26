@@ -1,8 +1,10 @@
 
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "sonner";
+import { User, Session } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
-type User = {
+type UserProfile = {
   id: string;
   name: string;
   email: string;
@@ -13,69 +15,92 @@ type User = {
 
 type UserContextType = {
   user: User | null;
+  profile: UserProfile | null;
+  session: Session | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for saved user in localStorage
-    const savedUser = localStorage.getItem("condominio-user");
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error("Failed to parse saved user:", error);
-        localStorage.removeItem("condominio-user");
+    // Configurar o listener de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        // Buscar o perfil do usuário quando o estado de autenticação mudar
+        if (currentSession?.user) {
+          setTimeout(() => {
+            fetchUserProfile(currentSession.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
       }
-    }
-    
-    // Mock user for demo purposes - remove in production
-    if (!savedUser) {
-      const mockUser = {
-        id: "1",
-        name: "João Silva",
-        email: "joao@example.com",
-        avatar: "https://i.pravatar.cc/300?img=68",
-        apartment: "301",
-        block: "A",
-      };
-      setUser(mockUser);
-      localStorage.setItem("condominio-user", JSON.stringify(mockUser));
-    }
-    
-    setIsLoading(false);
+    );
+
+    // Verificar sessão atual
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        fetchUserProfile(currentSession.user.id);
+      }
+      
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setProfile(data as UserProfile);
+      }
+    } catch (error: any) {
+      console.error("Erro ao buscar perfil do usuário:", error.message);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<void> => {
     setIsLoading(true);
     
     try {
-      // Mock login - replace with actual authentication in production
-      if (email && password) {
-        const mockUser = {
-          id: "1",
-          name: "João Silva",
-          email,
-          avatar: "https://i.pravatar.cc/300?img=68",
-          apartment: "301",
-          block: "A",
-        };
-        
-        setUser(mockUser);
-        localStorage.setItem("condominio-user", JSON.stringify(mockUser));
-        toast.success("Login realizado com sucesso!");
-      } else {
-        throw new Error("Email e senha são obrigatórios");
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      console.error("Login failed:", error);
+      
+      toast.success("Login realizado com sucesso!");
+    } catch (error: any) {
+      console.error("Login falhou:", error);
       toast.error("Falha no login. Verifique suas credenciais.");
       throw error;
     } finally {
@@ -83,14 +108,24 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("condominio-user");
-    toast.success("Logout realizado com sucesso!");
+  const logout = async (): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success("Logout realizado com sucesso!");
+    } catch (error: any) {
+      console.error("Logout falhou:", error);
+      toast.error("Falha ao fazer logout.");
+      throw error;
+    }
   };
 
   return (
-    <UserContext.Provider value={{ user, isLoading, login, logout }}>
+    <UserContext.Provider value={{ user, profile, session, isLoading, login, logout }}>
       {children}
     </UserContext.Provider>
   );

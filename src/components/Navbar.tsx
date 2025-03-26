@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Home, 
   ShoppingBag, 
@@ -8,7 +8,9 @@ import {
   MessageSquare, 
   Plus, 
   Menu,
-  X
+  X,
+  LogOut,
+  LogIn
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
@@ -23,14 +25,15 @@ import {
 const routes = [
   { name: "Início", path: "/", icon: Home },
   { name: "Marketplace", path: "/marketplace", icon: ShoppingBag },
-  { name: "Mensagens", path: "/messages", icon: MessageSquare },
-  { name: "Perfil", path: "/profile", icon: User }
+  { name: "Mensagens", path: "/messages", icon: MessageSquare, requireAuth: true },
+  { name: "Perfil", path: "/profile", icon: User, requireAuth: true }
 ];
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
-  const { user } = useUser();
+  const { user, profile, logout } = useUser();
   const location = useLocation();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -50,6 +53,16 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+    setOpen(false);
+  };
+
+  const filteredRoutes = routes.filter(route => 
+    !route.requireAuth || (route.requireAuth && user)
+  );
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -67,7 +80,7 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-1">
-          {routes.map((route) => (
+          {filteredRoutes.map((route) => (
             <Link
               key={route.path}
               to={route.path}
@@ -81,12 +94,32 @@ const Navbar = () => {
               <span>{route.name}</span>
             </Link>
           ))}
-          <Button asChild className="ml-2 rounded-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-md hover:shadow-lg transition-all">
-            <Link to="/marketplace?new=true">
-              <Plus size={18} className="mr-2" />
-              Anunciar
-            </Link>
-          </Button>
+          
+          {user ? (
+            <>
+              <Button asChild className="ml-2 rounded-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-md hover:shadow-lg transition-all">
+                <Link to="/marketplace?new=true">
+                  <Plus size={18} className="mr-2" />
+                  Anunciar
+                </Link>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="ml-2 rounded-full"
+                onClick={handleLogout}
+              >
+                <LogOut size={18} />
+              </Button>
+            </>
+          ) : (
+            <Button asChild className="ml-2 rounded-full">
+              <Link to="/auth">
+                <LogIn size={18} className="mr-2" />
+                Entrar
+              </Link>
+            </Button>
+          )}
         </nav>
 
         {/* Mobile Menu Button */}
@@ -104,7 +137,7 @@ const Navbar = () => {
                 </SheetTitle>
               </SheetHeader>
               <nav className="flex flex-col space-y-4">
-                {routes.map((route) => (
+                {filteredRoutes.map((route) => (
                   <Link
                     key={route.path}
                     to={route.path}
@@ -119,30 +152,53 @@ const Navbar = () => {
                     <span className="text-lg">{route.name}</span>
                   </Link>
                 ))}
-                <Button asChild className="mt-4 bg-gradient-to-r from-primary to-blue-600 text-white py-6 shadow-md">
-                  <Link 
-                    to="/marketplace?new=true"
-                    onClick={() => setOpen(false)}
-                  >
-                    <Plus size={18} className="mr-2" />
-                    Anunciar
-                  </Link>
-                </Button>
+                
+                {user ? (
+                  <>
+                    <Button asChild className="mt-4 bg-gradient-to-r from-primary to-blue-600 text-white py-6 shadow-md">
+                      <Link 
+                        to="/marketplace?new=true"
+                        onClick={() => setOpen(false)}
+                      >
+                        <Plus size={18} className="mr-2" />
+                        Anunciar
+                      </Link>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex items-center justify-center gap-2"
+                      onClick={handleLogout}
+                    >
+                      <LogOut size={18} />
+                      Sair
+                    </Button>
+                  </>
+                ) : (
+                  <Button asChild className="mt-4">
+                    <Link 
+                      to="/auth"
+                      onClick={() => setOpen(false)}
+                    >
+                      <LogIn size={18} className="mr-2" />
+                      Entrar / Cadastrar
+                    </Link>
+                  </Button>
+                )}
               </nav>
-              {user && (
+              {profile && (
                 <div className="mt-auto pt-6 border-t border-border/30">
                   <div className="flex items-center space-x-3">
                     <div className="h-12 w-12 rounded-full overflow-hidden">
                       <img
-                        src={user.avatar}
-                        alt={user.name}
+                        src={profile.avatar}
+                        alt={profile.name}
                         className="h-full w-full object-cover"
                       />
                     </div>
                     <div>
-                      <p className="font-medium">{user.name}</p>
+                      <p className="font-medium">{profile.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        Apto {user.apartment} · Bloco {user.block}
+                        {profile.apartment && profile.block ? `Apto ${profile.apartment} · Bloco ${profile.block}` : "Usuário"}
                       </p>
                     </div>
                   </div>

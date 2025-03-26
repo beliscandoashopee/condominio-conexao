@@ -12,6 +12,7 @@ import Marketplace from "./pages/Marketplace";
 import Profile from "./pages/Profile";
 import AdDetails from "./pages/AdDetails";
 import Messages from "./pages/Messages";
+import Auth from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => {
               <Route path="/profile" element={<Profile />} />
               <Route path="/ad/:id" element={<AdDetails />} />
               <Route path="/messages" element={<Messages />} />
+              <Route path="/auth" element={<Auth />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TooltipProvider>
