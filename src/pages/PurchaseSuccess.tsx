@@ -18,6 +18,7 @@ const PurchaseSuccess = () => {
   const [showRetryButton, setShowRetryButton] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'error'>('processing');
+  const [initialCredits, setInitialCredits] = useState<number | null>(null);
 
   useEffect(() => {
     const handleSuccessfulPurchase = async () => {
@@ -32,35 +33,51 @@ const PurchaseSuccess = () => {
         const sessionId = query.get("session_id");
         
         if (sessionId) {
-          // Primeiro, mostramos um status de processamento
+          // Store initial credits value to compare later
+          if (credits) {
+            setInitialCredits(credits.balance);
+          }
+          
+          // Show processing status
           setProcessingPayment(true);
           
-          // Espere um pouco para dar tempo do webhook processar (5 segundos)
+          // First attempt after 3 seconds
           setTimeout(async () => {
-            // Fetch the latest credits
             await fetchCredits(user.id);
             
-            // Se depois da primeira tentativa não tiver créditos, tente novamente
-            if (!credits) {
-              // Tentar novamente após mais 5 segundos
+            // Check if credits were updated
+            if (credits && initialCredits !== null && credits.balance > initialCredits) {
+              setProcessingPayment(false);
+              setPaymentStatus('success');
+            } else {
+              // Second attempt after 5 more seconds
               setTimeout(async () => {
                 await fetchCredits(user.id);
                 
-                // Se ainda não tiver créditos, mostre o botão de tentar novamente
-                if (!credits || error) {
-                  setProcessingPayment(false);
-                  setPaymentStatus('error');
-                  setShowRetryButton(true);
-                } else {
+                // Check again if credits were updated
+                if (credits && initialCredits !== null && credits.balance > initialCredits) {
                   setProcessingPayment(false);
                   setPaymentStatus('success');
+                } else {
+                  // Third attempt after 10 more seconds
+                  setTimeout(async () => {
+                    await fetchCredits(user.id);
+                    
+                    if (credits && initialCredits !== null && credits.balance > initialCredits) {
+                      setProcessingPayment(false);
+                      setPaymentStatus('success');
+                    } else {
+                      // If still no credits, show retry button
+                      setProcessingPayment(false);
+                      setPaymentStatus('error');
+                      setShowRetryButton(true);
+                      console.log("Payment webhook may be delayed. Showing retry option.");
+                    }
+                  }, 10000);
                 }
               }, 5000);
-            } else {
-              setProcessingPayment(false);
-              setPaymentStatus('success');
             }
-          }, 5000);
+          }, 3000);
           
           // Clear the URL params
           window.history.replaceState({}, document.title, window.location.pathname);
@@ -75,7 +92,7 @@ const PurchaseSuccess = () => {
     };
 
     handleSuccessfulPurchase();
-  }, [user, fetchCredits, navigate, location.search, retryCount]);
+  }, [user, fetchCredits, navigate, location.search, retryCount, initialCredits, credits]);
 
   const handleRetry = async () => {
     if (user) {

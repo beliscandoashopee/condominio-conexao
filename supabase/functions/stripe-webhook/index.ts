@@ -70,7 +70,7 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Handle the event - ONLY process checkout.session.completed with paid status
+    // Handle the checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       
@@ -88,66 +88,33 @@ serve(async (req) => {
       
       console.log(`Processing paid checkout session: ${session.id}`);
       
-      // Extract metadata from the session
-      const userId = session.metadata.userId;
-      const packageId = session.metadata.packageId;
-      const amount = parseInt(session.metadata.amount, 10);
+      // Process the payment from the session
+      await processPayment(session.metadata, supabase, session.id);
+    } 
+    // Handle the payment_intent.succeeded event
+    else if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object;
+      console.log(`Processing successful payment intent: ${paymentIntent.id}`);
       
-      if (!userId || !packageId || isNaN(amount)) {
-        throw new Error(`Missing or invalid metadata in the Stripe session: userId=${userId}, packageId=${packageId}, amount=${amount}`);
-      }
-      
-      console.log(`User ID: ${userId}, Package ID: ${packageId}, Credits Amount: ${amount}`);
-      
-      // Process the successful payment by adding credits to the user's account
-      
-      // 1. Register the transaction
-      const { data: transactionData, error: transactionError } = await supabase
-        .from('credit_transactions')
-        .insert([{
-          user_id: userId,
-          package_id: packageId,
-          amount: amount,
-          type: 'purchase',
-          description: `Compra via Stripe - ID: ${session.id}`
-        }])
-        .select();
-      
-      if (transactionError) {
-        console.error(`Failed to record transaction: ${JSON.stringify(transactionError)}`);
-        throw new Error(`Failed to record transaction: ${transactionError.message}`);
-      }
-      
-      console.log(`Transaction recorded: ${JSON.stringify(transactionData)}`);
-      
-      // 2. Check if the user already has a credit record
-      const { data: existingRecord, error: checkError } = await supabase
-        .from('user_credits')
-        .select('balance')
-        .eq('user_id', userId)
-        .single();
+      // Get the associated checkout session to retrieve metadata
+      try {
+        const sessions = await stripe.checkout.sessions.list({
+          payment_intent: paymentIntent.id,
+          limit: 1,
+        });
         
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error(`Error checking for existing user credit: ${JSON.stringify(checkError)}`);
-        throw new Error(`Error checking for existing user credit: ${checkError.message}`);
-      }
-      
-      // 3. Update or create the user's credit record using the RPC function
-      // The update_user_credits function has security_definer privilege which bypasses RLS
-      const { data: updateResult, error: updateError } = await supabase.rpc(
-        'update_user_credits',
-        { 
-          p_user_id: userId, 
-          p_amount: amount 
+        if (sessions.data.length > 0) {
+          const session = sessions.data[0];
+          console.log(`Found related checkout session: ${session.id} with metadata:`, session.metadata);
+          
+          // Process the payment using session metadata
+          await processPayment(session.metadata, supabase, session.id);
+        } else {
+          console.log(`No checkout session found for payment intent: ${paymentIntent.id}`);
         }
-      );
-      
-      if (updateError) {
-        console.error(`Failed to update user credits: ${JSON.stringify(updateError)}`);
-        throw new Error(`Failed to update user credits: ${updateError.message}`);
+      } catch (error) {
+        console.error(`Error retrieving checkout session for payment intent: ${error.message}`);
       }
-      
-      console.log(`Credits added successfully: ${amount} credits for user ${userId}, result: ${updateResult}`);
     } else {
       console.log(`Unhandled event type: ${event.type}`);
     }
@@ -170,3 +137,56 @@ serve(async (req) => {
     });
   }
 });
+
+// Helper function to process payments and add credits
+async function processPayment(metadata, supabase, sessionId) {
+  if (!metadata) {
+    throw new Error('No metadata found in the session');
+  }
+
+  // Extract metadata
+  const userId = metadata.userId;
+  const packageId = metadata.packageId;
+  const amount = parseInt(metadata.amount, 10);
+  
+  if (!userId || !packageId || isNaN(amount)) {
+    throw new Error(`Missing or invalid metadata: userId=${userId}, packageId=${packageId}, amount=${amount}`);
+  }
+  
+  console.log(`Processing payment for User ID: ${userId}, Package ID: ${packageId}, Credits Amount: ${amount}`);
+  
+  // 1. Register the transaction
+  const { data: transactionData, error: transactionError } = await supabase
+    .from('credit_transactions')
+    .insert([{
+      user_id: userId,
+      package_id: packageId,
+      amount: amount,
+      type: 'purchase',
+      description: `Compra via Stripe - ID: ${sessionId}`
+    }])
+    .select();
+  
+  if (transactionError) {
+    console.error(`Failed to record transaction: ${JSON.stringify(transactionError)}`);
+    throw new Error(`Failed to record transaction: ${transactionError.message}`);
+  }
+  
+  console.log(`Transaction recorded: ${JSON.stringify(transactionData)}`);
+  
+  // 2. Update the user's credit record using the RPC function
+  const { data: updateResult, error: updateError } = await supabase.rpc(
+    'update_user_credits',
+    { 
+      p_user_id: userId, 
+      p_amount: amount 
+    }
+  );
+  
+  if (updateError) {
+    console.error(`Failed to update user credits: ${JSON.stringify(updateError)}`);
+    throw new Error(`Failed to update user credits: ${updateError.message}`);
+  }
+  
+  console.log(`Credits added successfully: ${amount} credits for user ${userId}, result: ${updateResult}`);
+}
