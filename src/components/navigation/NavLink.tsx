@@ -1,11 +1,11 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { IconType } from "lucide-react";
+import { LucideIcon } from "lucide-react";
 
 interface NavLinkProps {
   to: string;
-  icon: IconType;
+  icon: LucideIcon;
   isActive: boolean;
   children: React.ReactNode;
   onClick?: () => void;
