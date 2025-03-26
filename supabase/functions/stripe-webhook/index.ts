@@ -56,6 +56,10 @@ serve(async (req) => {
       });
     }
 
+    // Log received event for debugging
+    console.log(`Received webhook event: ${event.type}`);
+    console.log(`Event data: ${JSON.stringify(event.data.object)}`);
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -66,10 +70,23 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Handle the event
+    // Handle the event - ONLY process checkout.session.completed with paid status
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
-      console.log(`Processing checkout session: ${session.id}`);
+      
+      // Verificar se o pagamento foi realmente concluído
+      if (session.payment_status !== 'paid') {
+        console.log(`Ignoring unpaid session: ${session.id}, payment_status: ${session.payment_status}`);
+        return new Response(JSON.stringify({ 
+          received: true,
+          message: 'Session received, but payment not completed yet' 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      }
+      
+      console.log(`Processing paid checkout session: ${session.id}`);
       
       // Extract metadata from the session
       const userId = session.metadata.userId;

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { CheckCircle2, ArrowRight, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { useCredits } from "@/contexts/credits";
 import { toast } from "sonner";
@@ -16,6 +16,8 @@ const PurchaseSuccess = () => {
   const { fetchCredits, credits, isLoading, error } = useCredits();
   const [retryCount, setRetryCount] = useState(0);
   const [showRetryButton, setShowRetryButton] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(true);
+  const [paymentStatus, setPaymentStatus] = useState<'processing' | 'success' | 'error'>('processing');
 
   useEffect(() => {
     const handleSuccessfulPurchase = async () => {
@@ -30,22 +32,35 @@ const PurchaseSuccess = () => {
         const sessionId = query.get("session_id");
         
         if (sessionId) {
-          // Fetch the latest credits
-          await fetchCredits(user.id);
+          // Primeiro, mostramos um status de processamento
+          setProcessingPayment(true);
           
-          // If we still don't have credits after first attempt, wait and try again
-          if (!credits) {
-            setTimeout(async () => {
-              await fetchCredits(user.id);
-              
-              // Set retry button if we still have issues
-              setTimeout(() => {
+          // Espere um pouco para dar tempo do webhook processar (5 segundos)
+          setTimeout(async () => {
+            // Fetch the latest credits
+            await fetchCredits(user.id);
+            
+            // Se depois da primeira tentativa não tiver créditos, tente novamente
+            if (!credits) {
+              // Tentar novamente após mais 5 segundos
+              setTimeout(async () => {
+                await fetchCredits(user.id);
+                
+                // Se ainda não tiver créditos, mostre o botão de tentar novamente
                 if (!credits || error) {
+                  setProcessingPayment(false);
+                  setPaymentStatus('error');
                   setShowRetryButton(true);
+                } else {
+                  setProcessingPayment(false);
+                  setPaymentStatus('success');
                 }
-              }, 2000);
-            }, 2000);
-          }
+              }, 5000);
+            } else {
+              setProcessingPayment(false);
+              setPaymentStatus('success');
+            }
+          }, 5000);
           
           // Clear the URL params
           window.history.replaceState({}, document.title, window.location.pathname);
@@ -53,6 +68,8 @@ const PurchaseSuccess = () => {
       } catch (error) {
         console.error("Error fetching credits:", error);
         toast.error("Erro ao atualizar seus créditos. Por favor, entre em contato com o suporte.");
+        setProcessingPayment(false);
+        setPaymentStatus('error');
         setShowRetryButton(true);
       }
     };
@@ -64,6 +81,8 @@ const PurchaseSuccess = () => {
     if (user) {
       setRetryCount(prev => prev + 1);
       setShowRetryButton(false);
+      setProcessingPayment(true);
+      setPaymentStatus('processing');
       await fetchCredits(user.id);
     }
   };
@@ -76,19 +95,33 @@ const PurchaseSuccess = () => {
         <div className="container max-w-md mx-auto px-4">
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 className="h-12 w-12 text-green-600" />
+              {processingPayment ? (
+                <Loader2 className="h-12 w-12 text-green-600 animate-spin" />
+              ) : paymentStatus === 'success' ? (
+                <CheckCircle2 className="h-12 w-12 text-green-600" />
+              ) : (
+                <AlertCircle className="h-12 w-12 text-amber-600" />
+              )}
             </div>
             
-            <h1 className="text-2xl font-bold mb-4">Pagamento realizado com sucesso!</h1>
+            <h1 className="text-2xl font-bold mb-4">
+              {processingPayment ? "Processando seu pagamento..." : 
+               paymentStatus === 'success' ? "Pagamento realizado com sucesso!" :
+               "Aguardando confirmação de pagamento"}
+            </h1>
             
             <p className="text-muted-foreground mb-6">
-              Seus créditos foram adicionados à sua conta e já estão disponíveis para uso no marketplace.
+              {processingPayment ? 
+                "Estamos processando seu pagamento e adicionando créditos à sua conta. Isso pode levar alguns instantes." : 
+                paymentStatus === 'success' ? 
+                "Seus créditos foram adicionados à sua conta e já estão disponíveis para uso no marketplace." :
+                "O pagamento foi iniciado, mas ainda estamos aguardando a confirmação do processamento."}
             </p>
             
             {error && (
               <Alert variant="destructive" className="mb-6">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Erro</AlertTitle>
+                <AlertTitle>Erro na confirmação</AlertTitle>
                 <AlertDescription>
                   {error}
                   {showRetryButton && (
@@ -96,9 +129,31 @@ const PurchaseSuccess = () => {
                       variant="outline" 
                       size="sm" 
                       onClick={handleRetry}
-                      className="ml-2"
+                      className="ml-2 mt-2"
                     >
-                      Tentar novamente
+                      <RefreshCw className="mr-2 h-3 w-3" />
+                      Verificar novamente
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {paymentStatus === 'error' && !error && (
+              <Alert variant="warning" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Aguardando confirmação</AlertTitle>
+                <AlertDescription>
+                  O pagamento pode levar alguns minutos para ser processado pelo sistema financeiro.
+                  {showRetryButton && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleRetry}
+                      className="ml-2 mt-2"
+                    >
+                      <RefreshCw className="mr-2 h-3 w-3" />
+                      Verificar novamente
                     </Button>
                   )}
                 </AlertDescription>
@@ -107,7 +162,7 @@ const PurchaseSuccess = () => {
             
             <div className="bg-muted rounded-md p-4 mb-6">
               <p className="text-sm text-muted-foreground mb-1">Seu saldo atual</p>
-              {isLoading ? (
+              {isLoading || processingPayment ? (
                 <div className="flex justify-center items-center py-2">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
@@ -120,6 +175,7 @@ const PurchaseSuccess = () => {
               <Button 
                 className="w-full" 
                 onClick={() => navigate("/marketplace")}
+                disabled={processingPayment}
               >
                 Ir para o Marketplace
                 <ArrowRight size={16} className="ml-2" />
@@ -129,8 +185,18 @@ const PurchaseSuccess = () => {
                 variant="outline" 
                 className="w-full" 
                 onClick={() => navigate("/purchase-credits")}
+                disabled={processingPayment}
               >
                 Comprar mais créditos
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                className="w-full" 
+                onClick={() => navigate("/credit-history")}
+                disabled={processingPayment}
+              >
+                Ver histórico de créditos
               </Button>
             </div>
           </div>
