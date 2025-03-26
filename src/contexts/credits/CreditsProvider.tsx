@@ -1,6 +1,6 @@
 
-import React, { createContext, useState, useContext, useEffect } from "react";
-import { CreditsContextType, CreditPackage, CreditCost, UserCredits } from "./types";
+import React, { useState, useEffect } from "react";
+import { UserCredits, CreditPackage, CreditCost } from "./types";
 import { 
   fetchUserCredits,
   fetchAllCreditPackages, 
@@ -9,8 +9,7 @@ import {
   spendUserCredits
 } from "./creditsAPI";
 import { useCreditsUtils } from "./useCreditsUtils";
-
-const CreditsContext = createContext<CreditsContextType | undefined>(undefined);
+import CreditsContext from "./CreditsContext";
 
 export const CreditsProvider = ({ children }: { children: React.ReactNode }) => {
   const [credits, setCredits] = useState<UserCredits | null>(null);
@@ -63,7 +62,6 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     try {
       const packages = await fetchAllCreditPackages();
       setCreditPackages(packages);
-      // No need to return packages, we're changing the function to return void
     } catch (err: any) {
       console.error("Erro ao buscar pacotes de crédito:", err?.message);
     }
@@ -73,7 +71,6 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     try {
       const costs = await fetchAllCreditCosts();
       setCreditCosts(costs);
-      // No need to return costs, we're changing the function to return void
     } catch (err: any) {
       console.error("Erro ao buscar custos das ações:", err?.message);
     }
@@ -180,12 +177,4 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       {children}
     </CreditsContext.Provider>
   );
-};
-
-export const useCredits = (): CreditsContextType => {
-  const context = useContext(CreditsContext);
-  if (context === undefined) {
-    throw new Error("useCredits must be used within a CreditsProvider");
-  }
-  return context;
 };
