@@ -11,7 +11,8 @@ import {
   X,
   LogOut,
   LogIn,
-  Settings
+  Settings,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
@@ -27,7 +28,8 @@ const routes = [
   { name: "Início", path: "/", icon: Home },
   { name: "Marketplace", path: "/marketplace", icon: ShoppingBag },
   { name: "Mensagens", path: "/messages", icon: MessageSquare, requireAuth: true },
-  { name: "Perfil", path: "/profile", icon: User, requireAuth: true }
+  { name: "Perfil", path: "/profile", icon: User, requireAuth: true },
+  { name: "Créditos", path: "/purchase-credits", icon: CreditCard, requireAuth: true }
 ];
 
 const Navbar = () => {
