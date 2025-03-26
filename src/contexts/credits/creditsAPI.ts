@@ -5,40 +5,39 @@ import { CreditPackage, CreditCost, UserCredits } from "./types";
 
 export const fetchUserCredits = async (userId: string): Promise<UserCredits | null> => {
   try {
+    // First, try to get the existing user credits
     const { data, error } = await supabase
       .from("user_credits")
       .select("balance")
       .eq("user_id", userId)
       .single();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 é o código para 'não encontrado'
-      throw error;
+    if (error) {
+      // If not found, we'll create a new record with admin rights
+      if (error.code === 'PGRST116') { // 'PGRST116' is the code for 'not found'
+        const { data: insertData, error: insertError } = await supabase.rpc(
+          "update_user_credits",
+          { 
+            p_user_id: userId, 
+            p_amount: 0 // Initialize with zero credits
+          }
+        );
+
+        if (insertError) {
+          console.error("Erro ao criar registro de créditos:", insertError.message);
+          throw insertError;
+        }
+
+        return { balance: 0 };
+      } else {
+        throw error;
+      }
     }
 
-    if (data) {
-      return { balance: data.balance };
-    } else {
-      // Se o usuário não tem um registro de créditos, cria um com saldo zero
-      const { data: newCredits, error: insertError } = await supabase
-        .from("user_credits")
-        .insert([{ user_id: userId, balance: 0 }])
-        .select("balance")
-        .single();
-
-      if (insertError) {
-        throw insertError;
-      }
-
-      if (newCredits) {
-        return { balance: newCredits.balance };
-      }
-    }
-    
-    return null;
+    return data ? { balance: data.balance } : null;
   } catch (error: any) {
     console.error("Erro ao buscar créditos do usuário:", error.message);
-    toast.error("Não foi possível carregar seus créditos.");
-    return null;
+    throw error; // Let the caller handle the toast
   }
 };
 
@@ -84,6 +83,7 @@ export const purchaseUserCredits = async (
   selectedPackage: CreditPackage
 ): Promise<boolean> => {
   try {
+    // Instead of directly inserting, we'll use the RPC function which has more privileges
     // Registrar a transação de compra
     const { data: transaction, error: transactionError } = await supabase
       .from("credit_transactions")
@@ -101,7 +101,7 @@ export const purchaseUserCredits = async (
       throw transactionError;
     }
 
-    // Atualizar o saldo de créditos do usuário
+    // Atualizar o saldo de créditos do usuário usando a função RPC
     const { data: updatedCredits, error: updateError } = await supabase.rpc(
       "update_user_credits",
       { 

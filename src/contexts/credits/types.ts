@@ -29,4 +29,6 @@ export type CreditsContextType = {
   spendCredits: (actionType: string, userId: string, amount?: number) => Promise<boolean>;
   hasEnoughCredits: (actionType: string) => boolean;
   getCreditCost: (actionType: string) => number;
+  isLoading: boolean;
+  error: string | null;
 };

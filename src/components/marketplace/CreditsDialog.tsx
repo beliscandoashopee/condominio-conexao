@@ -15,8 +15,10 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { useCredits } from "@/contexts/credits";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CreditsDialogProps {
   isOpen: boolean;
@@ -30,7 +32,7 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
   defaultTab = "buy"
 }) => {
   const { user } = useUser();
-  const { credits, creditPackages, creditCosts } = useCredits();
+  const { credits, creditPackages, creditCosts, isLoading, error } = useCredits();
   const [selectedTab, setSelectedTab] = React.useState(defaultTab);
 
   return (
@@ -42,6 +44,15 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
             Gerencie seus créditos para anunciar e destacar produtos no marketplace.
           </DialogDescription>
         </DialogHeader>
+
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
@@ -67,30 +78,36 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
               </div>
 
               <div className="grid gap-4">
-                {creditPackages.slice(0, 2).map((pkg) => (
-                  <div key={pkg.id} className="border rounded-lg p-4 hover:border-primary transition-colors">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-medium">{pkg.name}</h3>
-                        <p className="text-2xl font-bold mt-1">
-                          {pkg.credits} <span className="text-sm font-normal text-muted-foreground">créditos</span>
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Preço</p>
-                        <p className="text-lg font-semibold">R$ {pkg.price.toFixed(2)}</p>
-                      </div>
-                    </div>
-                    <Button 
-                      asChild
-                      className="w-full mt-3"
-                    >
-                      <Link to="/purchase-credits" onClick={() => onOpenChange(false)}>
-                        Comprar
-                      </Link>
-                    </Button>
+                {isLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   </div>
-                ))}
+                ) : (
+                  creditPackages.slice(0, 2).map((pkg) => (
+                    <div key={pkg.id} className="border rounded-lg p-4 hover:border-primary transition-colors">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-medium">{pkg.name}</h3>
+                          <p className="text-2xl font-bold mt-1">
+                            {pkg.credits} <span className="text-sm font-normal text-muted-foreground">créditos</span>
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Preço</p>
+                          <p className="text-lg font-semibold">R$ {pkg.price.toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <Button 
+                        asChild
+                        className="w-full mt-3"
+                      >
+                        <Link to="/purchase-credits" onClick={() => onOpenChange(false)}>
+                          Comprar
+                        </Link>
+                      </Button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </TabsContent>
@@ -99,7 +116,13 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
             <div className="space-y-4">
               <div className="bg-secondary/50 rounded-lg p-4">
                 <h3 className="font-medium mb-2">Seu saldo</h3>
-                <p className="text-3xl font-bold">{credits?.balance || 0} créditos</p>
+                {isLoading ? (
+                  <div className="flex justify-center py-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <p className="text-3xl font-bold">{credits?.balance || 0} créditos</p>
+                )}
               </div>
               
               <div className="space-y-2">

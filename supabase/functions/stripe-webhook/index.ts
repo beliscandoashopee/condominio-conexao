@@ -103,7 +103,20 @@ serve(async (req) => {
       
       console.log(`Transaction recorded: ${JSON.stringify(transactionData)}`);
       
-      // 2. Update the user's credit balance using the RPC function
+      // 2. Check if the user already has a credit record
+      const { data: existingRecord, error: checkError } = await supabase
+        .from('user_credits')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
+        
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error(`Error checking for existing user credit: ${JSON.stringify(checkError)}`);
+        throw new Error(`Error checking for existing user credit: ${checkError.message}`);
+      }
+      
+      // 3. Update or create the user's credit record using the RPC function
+      // The update_user_credits function has security_definer privilege which bypasses RLS
       const { data: updateResult, error: updateError } = await supabase.rpc(
         'update_user_credits',
         { 

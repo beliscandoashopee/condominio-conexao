@@ -17,6 +17,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [creditCosts, setCreditCosts] = useState<CreditCost[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const { hasEnoughCredits, getCreditCost } = useCreditsUtils(credits, creditCosts);
 
@@ -29,20 +30,37 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
   const fetchCredits = async (userId: string) => {
     if (!userId) return;
     
-    const userCredits = await fetchUserCredits(userId);
-    if (userCredits) {
-      setCredits(userCredits);
+    setError(null);
+    try {
+      const userCredits = await fetchUserCredits(userId);
+      if (userCredits) {
+        setCredits(userCredits);
+      } else {
+        // Se não retornou créditos mas também não deu erro, provavelmente é um novo usuário
+        setCredits({ balance: 0 });
+      }
+    } catch (err: any) {
+      console.error("Erro ao buscar créditos:", err?.message);
+      setError("Não foi possível carregar seus créditos.");
     }
   };
 
   const fetchCreditPackages = async () => {
-    const packages = await fetchAllCreditPackages();
-    setCreditPackages(packages);
+    try {
+      const packages = await fetchAllCreditPackages();
+      setCreditPackages(packages);
+    } catch (err: any) {
+      console.error("Erro ao buscar pacotes de crédito:", err?.message);
+    }
   };
 
   const fetchCreditCosts = async () => {
-    const costs = await fetchAllCreditCosts();
-    setCreditCosts(costs);
+    try {
+      const costs = await fetchAllCreditCosts();
+      setCreditCosts(costs);
+    } catch (err: any) {
+      console.error("Erro ao buscar custos das ações:", err?.message);
+    }
   };
 
   const purchaseCredits = async (packageId: string, userId: string): Promise<boolean> => {
@@ -52,6 +70,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
 
     try {
       setIsLoading(true);
+      setError(null);
       
       // Buscar o pacote selecionado
       const selectedPackage = creditPackages.find(pkg => pkg.id === packageId);
@@ -68,6 +87,10 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       }
       
       return success;
+    } catch (err: any) {
+      console.error("Erro ao comprar créditos:", err?.message);
+      setError("Não foi possível completar a compra de créditos.");
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +110,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
 
     try {
       setIsLoading(true);
+      setError(null);
       
       // Buscar o custo da ação
       const costEntry = creditCosts.find(cost => cost.action_type === actionType);
@@ -111,6 +135,10 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       }
       
       return success;
+    } catch (err: any) {
+      console.error("Erro ao gastar créditos:", err?.message);
+      setError("Não foi possível completar a operação.");
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -128,7 +156,9 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
         purchaseCredits, 
         spendCredits, 
         hasEnoughCredits, 
-        getCreditCost 
+        getCreditCost,
+        isLoading,
+        error
       }}
     >
       {children}

@@ -3,17 +3,19 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
+import { CheckCircle2, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { useCredits } from "@/contexts/credits";
 import { toast } from "sonner";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const PurchaseSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useUser();
-  const { fetchCredits, credits } = useCredits();
-  const [isLoading, setIsLoading] = useState(true);
+  const { fetchCredits, credits, isLoading, error } = useCredits();
+  const [retryCount, setRetryCount] = useState(0);
+  const [showRetryButton, setShowRetryButton] = useState(false);
 
   useEffect(() => {
     const handleSuccessfulPurchase = async () => {
@@ -22,37 +24,49 @@ const PurchaseSuccess = () => {
         return;
       }
 
-      setIsLoading(true);
       try {
-        // Get session_id and package_id from URL query parameters
+        // Get session_id from URL query parameters
         const query = new URLSearchParams(location.search);
         const sessionId = query.get("session_id");
         
         if (sessionId) {
-          // Fetch the latest credits multiple times to ensure they're updated
-          // Sometimes there's a delay between Stripe webhook processing and database update
+          // Fetch the latest credits
           await fetchCredits(user.id);
           
-          // Wait a bit and fetch again to ensure we have the latest data
-          setTimeout(async () => {
-            await fetchCredits(user.id);
-            setIsLoading(false);
-          }, 2000);
+          // If we still don't have credits after first attempt, wait and try again
+          if (!credits) {
+            setTimeout(async () => {
+              await fetchCredits(user.id);
+              
+              // Set retry button if we still have issues
+              setTimeout(() => {
+                if (!credits || error) {
+                  setShowRetryButton(true);
+                }
+              }, 2000);
+            }, 2000);
+          }
           
           // Clear the URL params
           window.history.replaceState({}, document.title, window.location.pathname);
-        } else {
-          setIsLoading(false);
         }
       } catch (error) {
         console.error("Error fetching credits:", error);
         toast.error("Erro ao atualizar seus créditos. Por favor, entre em contato com o suporte.");
-        setIsLoading(false);
+        setShowRetryButton(true);
       }
     };
 
     handleSuccessfulPurchase();
-  }, [user, fetchCredits, navigate, location.search]);
+  }, [user, fetchCredits, navigate, location.search, retryCount]);
+
+  const handleRetry = async () => {
+    if (user) {
+      setRetryCount(prev => prev + 1);
+      setShowRetryButton(false);
+      await fetchCredits(user.id);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -70,6 +84,26 @@ const PurchaseSuccess = () => {
             <p className="text-muted-foreground mb-6">
               Seus créditos foram adicionados à sua conta e já estão disponíveis para uso no marketplace.
             </p>
+            
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Erro</AlertTitle>
+                <AlertDescription>
+                  {error}
+                  {showRetryButton && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleRetry}
+                      className="ml-2"
+                    >
+                      Tentar novamente
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
             
             <div className="bg-muted rounded-md p-4 mb-6">
               <p className="text-sm text-muted-foreground mb-1">Seu saldo atual</p>
