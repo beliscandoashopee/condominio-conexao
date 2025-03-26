@@ -63,10 +63,9 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     try {
       const packages = await fetchAllCreditPackages();
       setCreditPackages(packages);
-      return packages;
+      // No need to return packages, we're changing the function to return void
     } catch (err: any) {
       console.error("Erro ao buscar pacotes de crédito:", err?.message);
-      return [];
     }
   };
 
@@ -74,10 +73,9 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     try {
       const costs = await fetchAllCreditCosts();
       setCreditCosts(costs);
-      return costs;
+      // No need to return costs, we're changing the function to return void
     } catch (err: any) {
       console.error("Erro ao buscar custos das ações:", err?.message);
-      return [];
     }
   };
 
