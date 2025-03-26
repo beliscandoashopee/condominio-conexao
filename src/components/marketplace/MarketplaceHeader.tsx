@@ -1,11 +1,10 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
-import { useCredits } from "@/contexts/CreditsContext";
+import { useCredits } from "@/contexts/credits";
 
 interface MarketplaceHeaderProps {
   onCreateAdClick: () => void;

@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import CategoryFilter from "@/components/CategoryFilter";
 import { advertisements } from "@/data/mockData";
 import { useUser } from "@/contexts/UserContext";
-import { useCredits } from "@/contexts/CreditsContext";
+import { useCredits } from "@/contexts/credits";
 
 // Componentes refatorados
 import MarketplaceHeader from "@/components/marketplace/MarketplaceHeader";

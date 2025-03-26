@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/contexts/UserContext";
-import { useCredits } from "@/contexts/CreditsContext";
+import { useCredits } from "@/contexts/credits";
 
 interface CreditsDialogProps {
   isOpen: boolean;
