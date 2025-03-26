@@ -69,6 +69,7 @@ serve(async (req) => {
     // Handle the event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
+      console.log(`Processing checkout session: ${session.id}`);
       
       // Extract metadata from the session
       const userId = session.metadata.userId;
@@ -76,13 +77,15 @@ serve(async (req) => {
       const amount = parseInt(session.metadata.amount, 10);
       
       if (!userId || !packageId || isNaN(amount)) {
-        throw new Error('Missing or invalid metadata in the Stripe session');
+        throw new Error(`Missing or invalid metadata in the Stripe session: userId=${userId}, packageId=${packageId}, amount=${amount}`);
       }
+      
+      console.log(`User ID: ${userId}, Package ID: ${packageId}, Credits Amount: ${amount}`);
       
       // Process the successful payment by adding credits to the user's account
       
       // 1. Register the transaction
-      const { error: transactionError } = await supabase
+      const { data: transactionData, error: transactionError } = await supabase
         .from('credit_transactions')
         .insert([{
           user_id: userId,
@@ -90,11 +93,15 @@ serve(async (req) => {
           amount: amount,
           type: 'purchase',
           description: `Compra via Stripe - ID: ${session.id}`
-        }]);
+        }])
+        .select();
       
       if (transactionError) {
+        console.error(`Failed to record transaction: ${JSON.stringify(transactionError)}`);
         throw new Error(`Failed to record transaction: ${transactionError.message}`);
       }
+      
+      console.log(`Transaction recorded: ${JSON.stringify(transactionData)}`);
       
       // 2. Update the user's credit balance using the RPC function
       const { data: updateResult, error: updateError } = await supabase.rpc(
@@ -106,19 +113,28 @@ serve(async (req) => {
       );
       
       if (updateError) {
+        console.error(`Failed to update user credits: ${JSON.stringify(updateError)}`);
         throw new Error(`Failed to update user credits: ${updateError.message}`);
       }
       
-      console.log(`Credits added successfully: ${amount} credits for user ${userId}`);
+      console.log(`Credits added successfully: ${amount} credits for user ${userId}, result: ${updateResult}`);
+    } else {
+      console.log(`Unhandled event type: ${event.type}`);
     }
 
-    return new Response(JSON.stringify({ received: true }), {
+    return new Response(JSON.stringify({ 
+      received: true,
+      message: 'Webhook processed successfully' 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
-    console.error(`Webhook error: ${error.message}`);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error(`Webhook error: ${error.message}`, error.stack);
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: error.stack
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
