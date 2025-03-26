@@ -1,5 +1,6 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -29,16 +30,8 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
   defaultTab = "buy"
 }) => {
   const { user } = useUser();
-  const { credits, creditPackages, creditCosts, purchaseCredits } = useCredits();
+  const { credits, creditPackages, creditCosts } = useCredits();
   const [selectedTab, setSelectedTab] = React.useState(defaultTab);
-  
-  const handlePurchaseCredits = async (packageId: string) => {
-    if (!user) return;
-    const success = await purchaseCredits(packageId, user.id);
-    if (success) {
-      setSelectedTab("summary");
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -62,8 +55,19 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
                 Escolha um pacote de créditos para continuar utilizando o marketplace:
               </p>
 
+              <div className="text-center py-4 px-5 border rounded-lg bg-muted/50">
+                <p className="mb-4">
+                  Para uma experiência melhor de compra, acesse nossa página dedicada de créditos.
+                </p>
+                <Button asChild className="w-full">
+                  <Link to="/purchase-credits" onClick={() => onOpenChange(false)}>
+                    Comprar créditos com cartão
+                  </Link>
+                </Button>
+              </div>
+
               <div className="grid gap-4">
-                {creditPackages.map((pkg) => (
+                {creditPackages.slice(0, 2).map((pkg) => (
                   <div key={pkg.id} className="border rounded-lg p-4 hover:border-primary transition-colors">
                     <div className="flex justify-between items-center">
                       <div>
@@ -78,10 +82,12 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
                       </div>
                     </div>
                     <Button 
-                      onClick={() => handlePurchaseCredits(pkg.id)} 
+                      asChild
                       className="w-full mt-3"
                     >
-                      Comprar
+                      <Link to="/purchase-credits" onClick={() => onOpenChange(false)}>
+                        Comprar
+                      </Link>
                     </Button>
                   </div>
                 ))}
@@ -109,10 +115,12 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
               </div>
               
               <Button 
-                onClick={() => setSelectedTab("buy")} 
+                asChild
                 className="w-full"
               >
-                Comprar mais créditos
+                <Link to="/purchase-credits" onClick={() => onOpenChange(false)}>
+                  Comprar mais créditos
+                </Link>
               </Button>
             </div>
           </TabsContent>

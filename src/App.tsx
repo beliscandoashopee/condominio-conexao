@@ -15,6 +15,8 @@ import AdDetails from "./pages/AdDetails";
 import Messages from "./pages/Messages";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
+import PurchaseCredits from "./pages/PurchaseCredits";
+import PurchaseSuccess from "./pages/PurchaseSuccess";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,8 @@ const App = () => {
                 <Route path="/messages" element={<Messages />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/purchase-credits" element={<PurchaseCredits />} />
+                <Route path="/purchase-success" element={<PurchaseSuccess />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </TooltipProvider>
