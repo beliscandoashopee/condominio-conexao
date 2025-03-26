@@ -5,7 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, stripe-signature',
 };
 
 serve(async (req) => {
@@ -31,7 +31,8 @@ serve(async (req) => {
     }
 
     // Log request headers for debugging
-    console.log(`🔍 [${timestamp}] Request headers: ${JSON.stringify([...req.headers.entries()])}`);
+    const headersEntries = [...req.headers.entries()];
+    console.log(`🔍 [${timestamp}] Request headers: ${JSON.stringify(headersEntries)}`);
     
     const stripeSignature = req.headers.get('stripe-signature');
     if (!stripeSignature) {
@@ -85,6 +86,8 @@ serve(async (req) => {
     let event;
     try {
       console.log(`🔑 [${timestamp}] Verifying webhook signature with secret key`);
+      console.log(`🔑 [${timestamp}] Signature received: ${stripeSignature.substring(0, 20)}...`);
+      
       event = stripe.webhooks.constructEvent(body, stripeSignature, webhookSecret);
       console.log(`✅ [${timestamp}] Webhook signature verified`);
     } catch (err) {
