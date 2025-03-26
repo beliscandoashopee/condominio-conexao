@@ -1,15 +1,14 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CreditCard, ShoppingCart, ChevronLeft } from "lucide-react";
+import { Loader2, CreditCard, ShoppingCart, ChevronLeft, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@/contexts/UserContext";
 import { useCredits } from "@/contexts/credits";
 import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription, AlertCircle } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const PurchaseCredits = () => {
   const navigate = useNavigate();
@@ -18,7 +17,6 @@ const PurchaseCredits = () => {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Redirect if not logged in
   React.useEffect(() => {
     if (!user) {
       toast.error("Você precisa estar logado para comprar créditos");
@@ -44,7 +42,6 @@ const PurchaseCredits = () => {
 
       console.log("Iniciando checkout para pacote:", selectedPackage.name);
 
-      // Call the Stripe checkout edge function
       const { data, error: functionError } = await supabase.functions.invoke("stripe-checkout", {
         body: {
           packageId: selectedPackage.id,
@@ -66,7 +63,6 @@ const PurchaseCredits = () => {
       }
 
       console.log("Redirecionando para URL de checkout:", data.url);
-      // Redirect to Stripe checkout
       window.location.href = data.url;
     } catch (err: any) {
       console.error("Erro ao processar pagamento:", err);
@@ -77,7 +73,6 @@ const PurchaseCredits = () => {
     }
   };
 
-  // If user came back from successful purchase
   React.useEffect(() => {
     const handleSuccessfulPurchase = async () => {
       const query = new URLSearchParams(window.location.search);
@@ -87,7 +82,6 @@ const PurchaseCredits = () => {
         toast.success("Pagamento processado com sucesso!");
         await fetchCredits(user.id);
         
-        // Clear the URL params
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     };
