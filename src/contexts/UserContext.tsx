@@ -3,7 +3,7 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "sonner";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useCredits } from "./CreditsContext";
+import { useCredits } from "./credits";
 
 type UserProfile = {
   id: string;
