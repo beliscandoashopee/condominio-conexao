@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
@@ -49,14 +48,12 @@ const Marketplace = () => {
   const [priceRange, setPriceRange] = useState<[number | null, number | null]>([null, null]);
   const [sortOption, setSortOption] = useState("recent");
   
-  // New ad form state
   const [adTitle, setAdTitle] = useState("");
   const [adDescription, setAdDescription] = useState("");
   const [adPrice, setAdPrice] = useState("");
   const [adCategory, setAdCategory] = useState("");
   
   useEffect(() => {
-    // Check URL parameters
     const params = new URLSearchParams(location.search);
     const categoryParam = params.get("category");
     const newParam = params.get("new");
@@ -70,24 +67,19 @@ const Marketplace = () => {
     }
   }, [location.search, user]);
   
-  // Filter ads based on search term, category and price range
   const filteredAds = advertisements.filter((ad) => {
-    // Filter by search term
     const matchesSearch = searchTerm === "" || 
       ad.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ad.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Filter by category
     const matchesCategory = selectedCategory === null || ad.category === selectedCategory;
     
-    // Filter by price range
     const matchesMinPrice = priceRange[0] === null || ad.price >= priceRange[0];
     const matchesMaxPrice = priceRange[1] === null || ad.price <= priceRange[1];
     
     return matchesSearch && matchesCategory && matchesMinPrice && matchesMaxPrice;
   });
   
-  // Sort ads
   const sortedAds = [...filteredAds].sort((a, b) => {
     switch (sortOption) {
       case "recent":
@@ -106,7 +98,6 @@ const Marketplace = () => {
   const handleCategorySelect = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
     
-    // Update URL parameter
     const params = new URLSearchParams(location.search);
     if (categoryId === null) {
       params.delete("category");
@@ -129,13 +120,11 @@ const Marketplace = () => {
     toast.success("Anúncio criado com sucesso!");
     setIsCreateDialogOpen(false);
     
-    // Reset form
     setAdTitle("");
     setAdDescription("");
     setAdPrice("");
     setAdCategory("");
     
-    // Remove new=true from URL
     const params = new URLSearchParams(location.search);
     params.delete("new");
     navigate({
@@ -150,7 +139,6 @@ const Marketplace = () => {
     setPriceRange([null, null]);
     setSortOption("recent");
     
-    // Update URL
     navigate("/marketplace");
   };
   
@@ -284,17 +272,19 @@ const Marketplace = () => {
               </SheetContent>
             </Sheet>
             
-            <Select value={sortOption} onValueChange={setSortOption} className="md:w-48 h-12">
-              <SelectTrigger>
-                <SelectValue placeholder="Ordenar por" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recent">Mais recentes</SelectItem>
-                <SelectItem value="priceAsc">Menor preço</SelectItem>
-                <SelectItem value="priceDesc">Maior preço</SelectItem>
-                <SelectItem value="popular">Mais populares</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="md:w-48 h-12">
+              <Select value={sortOption} onValueChange={setSortOption}>
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recent">Mais recentes</SelectItem>
+                  <SelectItem value="priceAsc">Menor preço</SelectItem>
+                  <SelectItem value="priceDesc">Maior preço</SelectItem>
+                  <SelectItem value="popular">Mais populares</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           <CategoryFilter
@@ -323,7 +313,6 @@ const Marketplace = () => {
         </div>
       </main>
       
-      {/* Create Ad Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
