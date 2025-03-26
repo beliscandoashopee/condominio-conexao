@@ -15,6 +15,7 @@ serve(async (req) => {
   }
 
   if (req.method !== 'POST') {
+    console.error(`Invalid request method: ${req.method}`);
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 405,
@@ -23,6 +24,7 @@ serve(async (req) => {
 
   const stripeSignature = req.headers.get('stripe-signature');
   if (!stripeSignature) {
+    console.error('Request missing Stripe signature header');
     return new Response(JSON.stringify({ error: 'Stripe signature missing' }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
@@ -30,19 +32,27 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Stripe webhook function invoked');
+    
     // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2023-10-16',
     });
 
     // Get the webhook secret from environment variables
-    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') || '';
+    const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
-      throw new Error('Stripe webhook secret is not set');
+      throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not set');
     }
 
     // Get the request body as text for the verification
     const body = await req.text();
+    console.log(`Received webhook payload with length: ${body.length} bytes`);
     
     // Verify the webhook signature
     let event;
@@ -57,12 +67,13 @@ serve(async (req) => {
     }
 
     // Log received event for debugging
-    console.log(`Received webhook event: ${event.type}`);
-    console.log(`Event data: ${JSON.stringify(event.data.object)}`);
+    console.log(`Received webhook event type: ${event.type}`);
+    console.log(`Event ID: ${event.id}`);
+    console.log(`Event data object: ${JSON.stringify(event.data.object)}`);
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Supabase credentials are not set');
@@ -74,22 +85,19 @@ serve(async (req) => {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       
-      // Verificar se o pagamento foi realmente concluído
-      if (session.payment_status !== 'paid') {
+      console.log(`Processing checkout session: ${session.id}`);
+      console.log(`Session metadata: ${JSON.stringify(session.metadata)}`);
+      console.log(`Payment status: ${session.payment_status}`);
+      
+      // Check if payment was completed
+      if (session.payment_status === 'paid') {
+        console.log(`Session ${session.id} is paid, processing payment`);
+        
+        // Process the payment from the session
+        await processPayment(session.metadata, supabase, session.id);
+      } else {
         console.log(`Ignoring unpaid session: ${session.id}, payment_status: ${session.payment_status}`);
-        return new Response(JSON.stringify({ 
-          received: true,
-          message: 'Session received, but payment not completed yet' 
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        });
       }
-      
-      console.log(`Processing paid checkout session: ${session.id}`);
-      
-      // Process the payment from the session
-      await processPayment(session.metadata, supabase, session.id);
     } 
     // Handle the payment_intent.succeeded event
     else if (event.type === 'payment_intent.succeeded') {
@@ -103,9 +111,11 @@ serve(async (req) => {
           limit: 1,
         });
         
+        console.log(`Found ${sessions.data.length} sessions for payment intent ${paymentIntent.id}`);
+        
         if (sessions.data.length > 0) {
           const session = sessions.data[0];
-          console.log(`Found related checkout session: ${session.id} with metadata:`, session.metadata);
+          console.log(`Found related checkout session: ${session.id} with metadata: ${JSON.stringify(session.metadata)}`);
           
           // Process the payment using session metadata
           await processPayment(session.metadata, supabase, session.id);
@@ -121,13 +131,16 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       received: true,
-      message: 'Webhook processed successfully' 
+      message: 'Webhook processed successfully',
+      eventType: event.type,
+      eventId: event.id 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
-    console.error(`Webhook error: ${error.message}`, error.stack);
+    console.error(`Webhook error: ${error.message}`);
+    console.error(`Error stack: ${error.stack}`);
     return new Response(JSON.stringify({ 
       error: error.message,
       details: error.stack
@@ -140,7 +153,10 @@ serve(async (req) => {
 
 // Helper function to process payments and add credits
 async function processPayment(metadata, supabase, sessionId) {
+  console.log(`Starting processPayment for session ${sessionId}`);
+  
   if (!metadata) {
+    console.error('No metadata found in the session');
     throw new Error('No metadata found in the session');
   }
 
@@ -149,13 +165,15 @@ async function processPayment(metadata, supabase, sessionId) {
   const packageId = metadata.packageId;
   const amount = parseInt(metadata.amount, 10);
   
+  console.log(`Processing payment with metadata: userId=${userId}, packageId=${packageId}, amount=${amount}`);
+  
   if (!userId || !packageId || isNaN(amount)) {
+    console.error(`Missing or invalid metadata: userId=${userId}, packageId=${packageId}, amount=${amount}`);
     throw new Error(`Missing or invalid metadata: userId=${userId}, packageId=${packageId}, amount=${amount}`);
   }
   
-  console.log(`Processing payment for User ID: ${userId}, Package ID: ${packageId}, Credits Amount: ${amount}`);
-  
   // 1. Register the transaction
+  console.log(`Registering credit transaction for user ${userId}`);
   const { data: transactionData, error: transactionError } = await supabase
     .from('credit_transactions')
     .insert([{
@@ -172,9 +190,10 @@ async function processPayment(metadata, supabase, sessionId) {
     throw new Error(`Failed to record transaction: ${transactionError.message}`);
   }
   
-  console.log(`Transaction recorded: ${JSON.stringify(transactionData)}`);
+  console.log(`Transaction recorded with ID: ${transactionData[0].id}`);
   
   // 2. Update the user's credit record using the RPC function
+  console.log(`Updating credits for user ${userId} with amount ${amount}`);
   const { data: updateResult, error: updateError } = await supabase.rpc(
     'update_user_credits',
     { 
@@ -189,4 +208,19 @@ async function processPayment(metadata, supabase, sessionId) {
   }
   
   console.log(`Credits added successfully: ${amount} credits for user ${userId}, result: ${updateResult}`);
+  
+  // 3. Double-check if credits were actually added by querying the user_credits table
+  const { data: userCredits, error: userCreditsError } = await supabase
+    .from('user_credits')
+    .select('balance')
+    .eq('user_id', userId)
+    .single();
+    
+  if (userCreditsError) {
+    console.error(`Failed to verify user credits: ${JSON.stringify(userCreditsError)}`);
+  } else {
+    console.log(`Current user credit balance: ${userCredits?.balance || 'unknown'}`);
+  }
+  
+  return true;
 }
