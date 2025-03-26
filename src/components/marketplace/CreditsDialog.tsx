@@ -15,7 +15,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, History } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { useCredits } from "@/contexts/credits";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -137,14 +137,27 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
                 </div>
               </div>
               
-              <Button 
-                asChild
-                className="w-full"
-              >
-                <Link to="/purchase-credits" onClick={() => onOpenChange(false)}>
-                  Comprar mais créditos
-                </Link>
-              </Button>
+              <div className="space-y-3">
+                <Button 
+                  asChild
+                  className="w-full"
+                >
+                  <Link to="/purchase-credits" onClick={() => onOpenChange(false)}>
+                    Comprar mais créditos
+                  </Link>
+                </Button>
+                
+                <Button 
+                  asChild
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Link to="/credit-history" onClick={() => onOpenChange(false)}>
+                    <History className="mr-2 h-4 w-4" />
+                    Ver histórico completo
+                  </Link>
+                </Button>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

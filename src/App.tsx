@@ -17,6 +17,7 @@ import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import PurchaseCredits from "./pages/PurchaseCredits";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
+import CreditHistory from "./pages/CreditHistory";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => {
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/purchase-credits" element={<PurchaseCredits />} />
                 <Route path="/purchase-success" element={<PurchaseSuccess />} />
+                <Route path="/credit-history" element={<CreditHistory />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </TooltipProvider>

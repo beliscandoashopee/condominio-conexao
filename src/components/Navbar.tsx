@@ -6,7 +6,8 @@ import {
   ShoppingBag, 
   User, 
   MessageSquare,
-  CreditCard
+  CreditCard,
+  History
 } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
 import { Logo } from "./navigation/Logo";
@@ -19,7 +20,8 @@ const routes: RouteConfig[] = [
   { name: "Marketplace", path: "/marketplace", icon: ShoppingBag },
   { name: "Mensagens", path: "/messages", icon: MessageSquare, requireAuth: true },
   { name: "Perfil", path: "/profile", icon: User, requireAuth: true },
-  { name: "Créditos", path: "/purchase-credits", icon: CreditCard, requireAuth: true }
+  { name: "Comprar Créditos", path: "/purchase-credits", icon: CreditCard, requireAuth: true },
+  { name: "Histórico de Créditos", path: "/credit-history", icon: History, requireAuth: true }
 ];
 
 const Navbar = () => {
