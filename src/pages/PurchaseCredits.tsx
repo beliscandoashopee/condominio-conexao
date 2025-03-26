@@ -9,12 +9,14 @@ import { toast } from "sonner";
 import { useUser } from "@/contexts/UserContext";
 import { useCredits } from "@/contexts/credits";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertCircle } from "@/components/ui/alert";
 
 const PurchaseCredits = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { creditPackages, fetchCredits } = useCredits();
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Redirect if not logged in
   React.useEffect(() => {
@@ -32,6 +34,7 @@ const PurchaseCredits = () => {
     }
 
     setIsLoading(packageId);
+    setError(null);
 
     try {
       const selectedPackage = creditPackages.find(pkg => pkg.id === packageId);
@@ -39,8 +42,10 @@ const PurchaseCredits = () => {
         throw new Error("Pacote não encontrado");
       }
 
+      console.log("Iniciando checkout para pacote:", selectedPackage.name);
+
       // Call the Stripe checkout edge function
-      const { data, error } = await supabase.functions.invoke("stripe-checkout", {
+      const { data, error: functionError } = await supabase.functions.invoke("stripe-checkout", {
         body: {
           packageId: selectedPackage.id,
           userId: user.id,
@@ -50,18 +55,22 @@ const PurchaseCredits = () => {
         }
       });
 
-      if (error) {
-        throw new Error(error.message);
+      if (functionError) {
+        console.error("Erro na função de checkout:", functionError);
+        throw new Error(functionError.message || "Erro ao processar o pagamento");
       }
 
       if (!data?.url) {
+        console.error("URL de checkout não retornada:", data);
         throw new Error("Não foi possível criar a sessão de pagamento");
       }
 
+      console.log("Redirecionando para URL de checkout:", data.url);
       // Redirect to Stripe checkout
       window.location.href = data.url;
-    } catch (error) {
-      console.error("Erro ao processar pagamento:", error);
+    } catch (err: any) {
+      console.error("Erro ao processar pagamento:", err);
+      setError(err.message || "Não foi possível processar o pagamento");
       toast.error("Não foi possível processar o pagamento. Tente novamente mais tarde.");
     } finally {
       setIsLoading(null);
@@ -107,6 +116,13 @@ const PurchaseCredits = () => {
               Escolha um pacote de créditos para utilizar no marketplace
             </p>
           </div>
+          
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
             {creditPackages.map((pkg) => (
