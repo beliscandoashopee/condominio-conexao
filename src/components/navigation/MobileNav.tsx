@@ -53,26 +53,24 @@ export const MobileNav = ({
             {routes.map((route) => (
               <NavLink
                 key={route.path}
-                to={route.path}
-                icon={route.icon}
-                isActive={isActive(route.path)}
+                route={route}
+                isActive={isActive}
                 onClick={() => setOpen(false)}
                 className="px-4 py-3"
-              >
-                {route.name}
-              </NavLink>
+              />
             ))}
             
             {isAdmin && (
               <NavLink
-                to="/admin"
-                icon={Settings}
-                isActive={isActive("/admin")}
+                route={{
+                  name: "Admin",
+                  path: "/admin",
+                  icon: Settings
+                }}
+                isActive={isActive}
                 onClick={() => setOpen(false)}
                 className="px-4 py-3"
-              >
-                Admin
-              </NavLink>
+              />
             )}
             
             {user ? (

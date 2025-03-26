@@ -26,22 +26,21 @@ export const DesktopNav = ({
       {routes.map((route) => (
         <NavLink
           key={route.path}
-          to={route.path}
-          icon={route.icon}
-          isActive={isActive(route.path)}
-        >
-          {route.name}
-        </NavLink>
+          route={route}
+          isActive={isActive}
+          onClick={() => {}}
+        />
       ))}
       
       {isAdmin && (
         <NavLink
-          to="/admin"
-          icon={Settings}
-          isActive={isActive("/admin")}
-        >
-          Admin
-        </NavLink>
+          route={{ 
+            name: "Admin", 
+            path: "/admin", 
+            icon: Settings 
+          }}
+          isActive={isActive}
+        />
       )}
       
       {user ? (

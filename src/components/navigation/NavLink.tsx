@@ -1,13 +1,13 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { RouteConfig } from "./types";
 
 interface NavLinkProps {
   route: RouteConfig;
   onClick?: () => void;
-  isActive: (path: string) => boolean;
+  isActive: boolean | ((path: string) => boolean);
   className?: string;
   iconOnly?: boolean;
 }
@@ -19,13 +19,21 @@ export const NavLink: React.FC<NavLinkProps> = ({
   className,
   iconOnly = false,
 }) => {
+  // Check if route is defined before trying to access its properties
+  if (!route) {
+    console.error("NavLink: route prop is undefined");
+    return null;
+  }
+
+  const isActiveValue = typeof isActive === 'function' ? isActive(route.path) : isActive;
+
   return (
     <Link
       to={route.path}
       onClick={onClick}
       className={cn(
         "flex items-center px-3 py-2 rounded-md transition-colors hover:bg-accent hover:text-accent-foreground",
-        isActive(route.path) && "bg-accent/60 text-accent-foreground font-medium",
+        isActiveValue && "bg-accent/60 text-accent-foreground font-medium",
         className
       )}
     >
