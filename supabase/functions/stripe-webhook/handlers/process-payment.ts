@@ -21,7 +21,7 @@ export async function processPayment(
   // Extract metadata
   const userId = metadata.userId;
   const packageId = metadata.packageId;
-  const amount = parseInt(metadata.amount, 10);
+  const amount = parseInt(metadata.amount || metadata.creditsAmount || "0", 10);
   
   logDebug(timestamp, `Processing with metadata: userId=${userId}, packageId=${packageId}, amount=${amount}`);
   

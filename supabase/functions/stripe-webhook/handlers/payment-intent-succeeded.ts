@@ -1,7 +1,7 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import Stripe from "https://esm.sh/stripe@12.5.0";
-import { logDebug, logError, logInfo, logWarning } from "../utils/logging.ts";
+import { logDebug, logError, logInfo, logWarning, logPayment } from "../utils/logging.ts";
 import { processPayment } from "./process-payment.ts";
 
 /**
@@ -20,8 +20,17 @@ export async function handlePaymentIntentSucceeded(
   if (paymentIntent.metadata && paymentIntent.metadata.userId) {
     logDebug(timestamp, `Found userId in payment intent metadata: ${paymentIntent.metadata.userId}`);
     
+    // Format metadata properly for processPayment
+    const formattedMetadata = {
+      userId: paymentIntent.metadata.userId,
+      packageId: paymentIntent.metadata.packageId,
+      amount: paymentIntent.metadata.creditsAmount || paymentIntent.metadata.amount
+    };
+    
+    logPayment(timestamp, `Processing payment with formatted metadata: ${JSON.stringify(formattedMetadata)}`);
+    
     // Use metadata from payment intent
-    const result = await processPayment(paymentIntent.metadata, supabase, paymentIntent.id, timestamp);
+    const result = await processPayment(formattedMetadata, supabase, paymentIntent.id, timestamp);
     logInfo(timestamp, `Payment processing from intent metadata result: ${JSON.stringify(result)}`);
     return result;
   } else {
