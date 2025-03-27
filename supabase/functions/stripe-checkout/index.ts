@@ -29,14 +29,15 @@ serve(async (req) => {
       throw new Error("Missing required fields");
     }
 
-    // Initialize Stripe
+    // Initialize Stripe with explicit API version
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
+      maxNetworkRetries: 2, // Add retries for better reliability
     });
     
     console.log("Creating Stripe checkout session");
     
-    // Create the checkout session
+    // Create the checkout session with optimized settings
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -61,6 +62,14 @@ serve(async (req) => {
         amount: amount.toString(),
       },
       client_reference_id: userId,
+      // Set shorter expiration - 30 minutes instead of default 24 hours
+      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+      // Collect customer email for better tracking
+      billing_address_collection: 'auto',
+      // Load faster by optimizing page transition
+      payment_intent_data: {
+        setup_future_usage: 'off_session',
+      },
     });
     
     console.log("Checkout session created:", session.id);

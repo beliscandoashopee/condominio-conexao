@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,9 @@ const PurchaseCredits = () => {
 
     setIsLoading(packageId);
     setError(null);
+    
+    // Show toast immediately to provide feedback
+    const loadingToastId = toast.loading("Preparando checkout...");
 
     try {
       const selectedPackage = creditPackages.find(pkg => pkg.id === packageId);
@@ -42,7 +46,13 @@ const PurchaseCredits = () => {
 
       console.log("Iniciando checkout para pacote:", selectedPackage.name);
 
-      const { data, error: functionError } = await supabase.functions.invoke("stripe-checkout", {
+      // Set timeout to ensure we don't wait forever
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Tempo de espera excedido. Tente novamente.")), 10000);
+      });
+
+      // Create checkout session with timeout
+      const checkoutPromise = supabase.functions.invoke("stripe-checkout", {
         body: {
           packageId: selectedPackage.id,
           userId: user.id,
@@ -51,6 +61,14 @@ const PurchaseCredits = () => {
           name: selectedPackage.name
         }
       });
+
+      // Race between checkout and timeout
+      const { data, error: functionError } = await Promise.race([
+        checkoutPromise,
+        timeoutPromise.then(() => { throw new Error("Tempo de espera excedido. Tente novamente."); })
+      ]) as any;
+
+      toast.dismiss(loadingToastId);
 
       if (functionError) {
         console.error("Erro na função de checkout:", functionError);
@@ -63,8 +81,12 @@ const PurchaseCredits = () => {
       }
 
       console.log("Redirecionando para URL de checkout:", data.url);
+      toast.success("Redirecionando para o checkout...");
+      
+      // Use window.location.href for a full page redirect
       window.location.href = data.url;
     } catch (err: any) {
+      toast.dismiss(loadingToastId);
       console.error("Erro ao processar pagamento:", err);
       setError(err.message || "Não foi possível processar o pagamento");
       toast.error("Não foi possível processar o pagamento. Tente novamente mais tarde.");
@@ -73,7 +95,7 @@ const PurchaseCredits = () => {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleSuccessfulPurchase = async () => {
       const query = new URLSearchParams(window.location.search);
       const sessionId = query.get("session_id");
