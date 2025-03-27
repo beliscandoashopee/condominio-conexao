@@ -43,12 +43,16 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
       maxNetworkRetries: 3, // Increase retries for better reliability
-      timeout: 20000, // Set longer timeout (20 seconds)
+      timeout: 30000, // Set longer timeout (30 seconds)
     });
     
     console.log("Creating Stripe checkout session");
     
     try {
+      // Get Supabase URL for webhook domain verification
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+      const origin = req.headers.get('origin') || '';
+      
       // Create the checkout session with optimized settings
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -66,12 +70,13 @@ serve(async (req) => {
           },
         ],
         mode: 'payment',
-        success_url: `${req.headers.get('origin')}/purchase-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${req.headers.get('origin')}/purchase-credits`,
+        success_url: `${origin}/purchase-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/purchase-credits`,
         metadata: {
           userId: userId,
           packageId: packageId,
           amount: amount.toString(),
+          applicationUrl: origin,
         },
         client_reference_id: userId,
         // Set shorter expiration - 30 minutes instead of default 24 hours
@@ -81,6 +86,18 @@ serve(async (req) => {
         // Load faster by optimizing page transition
         payment_intent_data: {
           setup_future_usage: 'off_session',
+          description: `Compra de ${amount} créditos - Pacote: ${name}`,
+          metadata: {
+            userId: userId,
+            packageId: packageId,
+            creditsAmount: amount.toString(),
+          },
+        },
+        // Allow customer to validate their card without payment
+        payment_method_options: {
+          card: {
+            request_three_d_secure: 'automatic',
+          },
         },
       });
       
@@ -106,6 +123,18 @@ serve(async (req) => {
       console.error("Stripe error code:", stripeError.code);
       console.error("Stripe error type:", stripeError.type);
       
+      // Capture detailed error information for diagnostics
+      const errorDetails = {
+        message: stripeError.message,
+        code: stripeError.code,
+        type: stripeError.type,
+        param: stripeError.param,
+        requestId: stripeError.requestId,
+        statusCode: stripeError.statusCode,
+      };
+      
+      console.error("Full Stripe error details:", JSON.stringify(errorDetails, null, 2));
+      
       // More specific error message based on Stripe error
       let errorMessage = "Falha ao criar sessão de checkout";
       
@@ -115,12 +144,15 @@ serve(async (req) => {
         errorMessage = "Não foi possível conectar ao Stripe. Verifique sua conexão.";
       } else if (stripeError.type === 'StripeRateLimitError') {
         errorMessage = "Limite de requisições ao Stripe excedido. Tente novamente em alguns instantes.";
+      } else if (stripeError.type === 'StripeInvalidRequestError') {
+        errorMessage = `Requisição inválida: ${stripeError.message}`;
       }
       
       return new Response(
         JSON.stringify({ 
           error: errorMessage,
-          details: stripeError.message
+          details: stripeError.message,
+          errorId: stripeError.requestId
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -133,7 +165,8 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Failed to create checkout session" 
+        error: error.message || "Falha ao criar sessão de checkout",
+        timestamp: new Date().toISOString()
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
