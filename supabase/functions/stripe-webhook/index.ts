@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { logDebug, logError, logInfo, logInspect, logProcess, logWarning } from "./utils/logging.ts";
-import { corsHeaders } from "./utils/constants.ts";
+import { corsHeaders, SUPPORTED_WEBHOOK_EVENTS } from "./utils/constants.ts";
 import { initializeStripe, parseWebhookEvent, getEventDataSummary } from "./utils/stripe-helpers.ts";
 import { initializeSupabase } from "./utils/supabase-client.ts";
 import { handleCheckoutCompleted } from "./handlers/checkout-completed.ts";
@@ -34,11 +34,22 @@ serve(async (req) => {
     logInspect(timestamp, `Request headers: ${JSON.stringify(headersEntries)}`);
     
     const stripeSignature = req.headers.get('stripe-signature');
-    // Important: Don't require signature for initial webhook testing
     if (!stripeSignature) {
-      logWarning(timestamp, "No Stripe signature found - proceeding for testing purposes");
-      // Don't fail immediately - allow processing without strict signature verification
-      // for initial testing and debugging but log this as a warning
+      logWarning(timestamp, "No Stripe signature found in headers");
+      // For initial testing we don't fail immediately, but in production this should be required
+      // for strict security measures. Implementing a toggle for relaxed/strict mode.
+      const isStrictMode = Deno.env.get('STRIPE_WEBHOOK_STRICT_MODE') === 'true';
+      if (isStrictMode) {
+        return new Response(JSON.stringify({ 
+          error: 'Stripe signature required',
+          message: 'No stripe-signature header found'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        });
+      } else {
+        logWarning(timestamp, "Proceeding without signature verification (TESTING MODE)");
+      }
     }
 
     // Initialize Stripe
@@ -82,6 +93,19 @@ serve(async (req) => {
     logDebug(timestamp, `Event type: ${event.type}`);
     logDebug(timestamp, `Event ID: ${event.id}`);
     
+    // Check if this is a supported event type
+    if (!SUPPORTED_WEBHOOK_EVENTS.includes(event.type)) {
+      logWarning(timestamp, `Ignoring unsupported event type: ${event.type}`);
+      return new Response(JSON.stringify({ 
+        received: true,
+        message: 'Event type not handled',
+        eventType: event.type
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 202, // Accepted but not processed
+      });
+    }
+    
     // Log parts of the event data, but be careful not to log sensitive information
     const eventDataSummary = getEventDataSummary(event);
     logDebug(timestamp, `Event data summary: ${JSON.stringify(eventDataSummary, null, 2)}`);
@@ -99,8 +123,6 @@ serve(async (req) => {
     // Handle the payment_intent.succeeded event
     else if (event.type === 'payment_intent.succeeded') {
       result = await handlePaymentIntentSucceeded(event.data.object, stripe, supabase, timestamp);
-    } else {
-      logDebug(timestamp, `Unhandled event type: ${event.type}`);
     }
 
     return new Response(JSON.stringify({ 
