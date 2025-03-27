@@ -17,6 +17,7 @@ const PurchaseCredits = () => {
   const { creditPackages, fetchCredits } = useCredits();
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   React.useEffect(() => {
     if (!user) {
@@ -46,9 +47,9 @@ const PurchaseCredits = () => {
 
       console.log("Iniciando checkout para pacote:", selectedPackage.name);
 
-      // Set timeout to ensure we don't wait forever
+      // Set timeout to ensure we don't wait forever - increased to 15 seconds
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Tempo de espera excedido. Tente novamente.")), 10000);
+        setTimeout(() => reject(new Error("Tempo de espera excedido. Tente novamente.")), 15000);
       });
 
       // Create checkout session with timeout
@@ -83,16 +84,38 @@ const PurchaseCredits = () => {
       console.log("Redirecionando para URL de checkout:", data.url);
       toast.success("Redirecionando para o checkout...");
       
-      // Use window.location.href for a full page redirect
-      window.location.href = data.url;
+      // Add a small delay before redirect to ensure toast is visible
+      setTimeout(() => {
+        // Use window.location.href for a full page redirect
+        window.location.href = data.url;
+      }, 500);
+      
     } catch (err: any) {
       toast.dismiss(loadingToastId);
       console.error("Erro ao processar pagamento:", err);
-      setError(err.message || "Não foi possível processar o pagamento");
+      
+      // Check if it's a network error
+      if (err.message?.includes("Failed to fetch") || err.message?.includes("Network Error")) {
+        setError("Erro de conexão. Verifique sua internet e tente novamente.");
+      } else if (err.message?.includes("tempo de espera")) {
+        setError("O servidor demorou para responder. Tente novamente em alguns instantes.");
+      } else if (err.details) {
+        // If we have detailed error information from Stripe
+        setError(`Erro do Stripe: ${err.details}`);
+      } else {
+        setError(err.message || "Não foi possível processar o pagamento");
+      }
+      
       toast.error("Não foi possível processar o pagamento. Tente novamente mais tarde.");
     } finally {
       setIsLoading(null);
     }
+  };
+
+  // Function to retry payment if it fails
+  const handleRetry = () => {
+    setError(null);
+    setRetryCount(prev => prev + 1);
   };
 
   useEffect(() => {
@@ -136,7 +159,17 @@ const PurchaseCredits = () => {
           {error && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>
+                {error}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleRetry}
+                  className="ml-2"
+                >
+                  Tentar novamente
+                </Button>
+              </AlertDescription>
             </Alert>
           )}
           
