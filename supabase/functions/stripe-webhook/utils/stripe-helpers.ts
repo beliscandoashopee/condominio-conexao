@@ -53,9 +53,20 @@ export const parseWebhookEvent = async (
     } else {
       // For testing: parse the body directly without verification
       logWarning(timestamp, "Processing webhook without signature verification (TESTING MODE)");
-      const event = JSON.parse(body);
-      logDebug(timestamp, `Event parsed directly: ${event.type}`);
-      return event as Stripe.Event;
+      try {
+        const event = JSON.parse(body);
+        logDebug(timestamp, `Event parsed directly: ${event.type}`);
+        
+        // Validate basic structure to ensure it's a Stripe event
+        if (!event.type || !event.data || !event.data.object) {
+          throw new Error('Invalid Stripe event format');
+        }
+        
+        return event as Stripe.Event;
+      } catch (parseError) {
+        logError(timestamp, `Failed to parse event JSON: ${parseError.message}`);
+        throw parseError;
+      }
     }
   } catch (err) {
     logError(timestamp, `Webhook signature verification failed: ${err.message}`);
@@ -81,12 +92,16 @@ export const parseWebhookEvent = async (
  * Extract summary data from event safely for logging
  */
 export const getEventDataSummary = (event: Stripe.Event): Record<string, any> => {
-  return {
-    object: event.data.object.object,
-    id: event.data.object.id,
-    ...(event.data.object.metadata && { metadata: event.data.object.metadata }),
-    ...(event.data.object.payment_status && { payment_status: event.data.object.payment_status }),
-    ...(event.data.object.status && { status: event.data.object.status }),
-    ...(event.data.object.client_reference_id && { client_reference_id: event.data.object.client_reference_id }),
-  };
+  try {
+    return {
+      object: event.data.object.object,
+      id: event.data.object.id,
+      ...(event.data.object.metadata && { metadata: event.data.object.metadata }),
+      ...(event.data.object.payment_status && { payment_status: event.data.object.payment_status }),
+      ...(event.data.object.status && { status: event.data.object.status }),
+      ...(event.data.object.client_reference_id && { client_reference_id: event.data.object.client_reference_id }),
+    };
+  } catch (error) {
+    return { error: "Could not extract event data summary" };
+  }
 };
