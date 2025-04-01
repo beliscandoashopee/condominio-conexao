@@ -1,9 +1,10 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useUser } from "@/contexts/user/UserContext";
 import { ManualCreditRequest, CreditPackage, CreditCost, UserCredits, CreditsContextType } from "./types";
-import { fetchUserCredits, fetchCreditPackages as fetchPackages, fetchCreditCosts as fetchCosts, purchaseCreditsAPI, spendCreditsAPI } from "./creditsAPI";
-import { fetchManualRequests as fetchRequests, requestManualCredits as requestCredits, approveRequest, rejectRequest } from "./manualCreditsAPI";
-import { getCreditCostValue, hasEnoughCreditsCheck } from "./useCreditsUtils";
+import { fetchUserCredits, fetchAllCreditPackages as fetchPackages, fetchAllCreditCosts as fetchCosts, purchaseUserCredits, spendUserCredits } from "./creditsAPI";
+import { fetchManualRequests as fetchRequests, createManualCreditRequest, updateManualRequestStatus, addCreditsToUser } from "./manualCreditsAPI";
+import { useCreditsUtils } from "./useCreditsUtils";
 
 const CreditsContext = createContext<CreditsContextType | undefined>(undefined);
 
@@ -15,6 +16,7 @@ export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [manualRequests, setManualRequests] = useState<ManualCreditRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const { hasEnoughCredits: checkEnoughCredits, getCreditCost: getActionCost } = useCreditsUtils(credits, creditCosts);
 
   useEffect(() => {
     if (user?.id) {
@@ -91,7 +93,12 @@ export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const purchaseCredits = async (packageId: string, userId: string) => {
     setLoading(true);
     try {
-      await purchaseCreditsAPI(packageId, userId);
+      const packageInfo = creditPackages.find(p => p.id === packageId);
+      if (!packageInfo) {
+        throw new Error("Package not found");
+      }
+      
+      await purchaseUserCredits(packageId, userId, packageInfo);
       await fetchCredits(userId);
       setError(null);
       return true;
@@ -113,7 +120,7 @@ export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     setLoading(true);
     try {
-      await requestCredits(user.id, amount, paymentMethod, paymentDetails);
+      await createManualCreditRequest(user.id, amount, paymentMethod, paymentDetails);
       setError(null);
       return true;
     } catch (err) {
@@ -128,8 +135,26 @@ export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const approveManualRequest = async (requestId: string) => {
     setLoading(true);
     try {
-      await approveRequest(requestId);
+      // First get the request details
+      const request = manualRequests.find(req => req.id === requestId);
+      if (!request) {
+        throw new Error("Request not found");
+      }
+      
+      // Update the status
+      await updateManualRequestStatus(requestId, "approved");
+      
+      // Add credits to the user
+      await addCreditsToUser(request.user_id, request.amount);
+      
+      // Refresh the requests list
       await fetchManualRequests();
+      
+      // If the approved request is for the current user, refresh credits
+      if (user?.id === request.user_id) {
+        await fetchCredits(user.id);
+      }
+      
       setError(null);
       return true;
     } catch (err) {
@@ -144,7 +169,7 @@ export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const rejectManualRequest = async (requestId: string) => {
     setLoading(true);
     try {
-      await rejectRequest(requestId);
+      await updateManualRequestStatus(requestId, "rejected");
       await fetchManualRequests();
       setError(null);
       return true;
@@ -161,7 +186,7 @@ export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setLoading(true);
     try {
       const cost = amount || getCreditCost(actionType);
-      await spendCreditsAPI(userId, cost);
+      await spendUserCredits(actionType, userId, cost);
       await fetchCredits(userId);
       setError(null);
       return true;
@@ -175,12 +200,11 @@ export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const getCreditCost = (actionType: string): number => {
-    return getCreditCostValue(actionType, creditCosts);
+    return getActionCost(actionType);
   };
 
   const hasEnoughCredits = (actionType: string): boolean => {
-    if (!credits) return false;
-    return hasEnoughCreditsCheck(actionType, credits, creditCosts);
+    return checkEnoughCredits(actionType);
   };
 
   return (
@@ -189,10 +213,11 @@ export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         credits,
         loading,
         error,
+        fetchCredits,
+        refetchCredits,
         creditPackages,
         creditCosts,
         manualRequests,
-        fetchCredits,
         fetchCreditPackages,
         fetchCreditCosts,
         fetchManualRequests,
@@ -202,8 +227,7 @@ export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         rejectManualRequest,
         spendCredits,
         hasEnoughCredits,
-        getCreditCost,
-        refetchCredits
+        getCreditCost
       }}
     >
       {children}
