@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Sparkles, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -27,7 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { categories } from "@/data/mockData";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/user/UserContext";
 import { useCredits } from "@/contexts/credits";
 
 interface CreateAdDialogProps {
