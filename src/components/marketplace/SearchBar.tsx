@@ -10,14 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface SearchBarProps {
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
-  sortOption: string;
-  setSortOption: (option: string) => void;
-  onOpenFilters: () => void;
-}
+import { SearchBarProps } from "./interfaces";
 
 const SearchBar: React.FC<SearchBarProps> = ({
   searchTerm,

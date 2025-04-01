@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { useUser } from "@/contexts/UserContext";
-import { useCredits } from "@/contexts/credits";
+import { useCredits } from "@/contexts/credits/CreditsContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import CreditHistoryHeader from "@/components/credits/CreditHistoryHeader";
@@ -21,7 +21,7 @@ interface CreditTransaction {
 
 const CreditHistory = () => {
   const { user } = useUser();
-  const { credits, isLoading: isLoadingCredits } = useCredits();
+  const { credits, loading: creditsLoading } = useCredits();
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +77,7 @@ const CreditHistory = () => {
           <CreditSummaryCards 
             credits={credits}
             transactions={transactions}
-            isLoadingCredits={isLoadingCredits}
+            isLoadingCredits={creditsLoading}
             isLoadingTransactions={isLoading}
           />
           

@@ -1,10 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-
-interface NoResultsFoundProps {
-  onClearFilters: () => void;
-}
+import { NoResultsFoundProps } from "./interfaces";
 
 const NoResultsFound: React.FC<NoResultsFoundProps> = ({ onClearFilters }) => {
   return (

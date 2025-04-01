@@ -1,8 +1,6 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ManualCreditRequest } from './types';
-import { Database } from '@/integrations/supabase/types';
-
-type ManualCreditRequestRow = Database['public']['Tables']['manual_credit_requests']['Row'];
 
 export const createManualCreditRequest = async (
   userId: string,
@@ -31,7 +29,7 @@ export const createManualCreditRequest = async (
   }
 };
 
-export const fetchManualRequests = async (): Promise<ManualCreditRequestRow[]> => {
+export const fetchManualRequests = async (): Promise<ManualCreditRequest[]> => {
   try {
     const { data, error } = await supabase
       .from('manual_credit_requests')
@@ -39,7 +37,12 @@ export const fetchManualRequests = async (): Promise<ManualCreditRequestRow[]> =
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Ensure the status field conforms to the expected type
+    return (data || []).map(request => ({
+      ...request,
+      status: request.status as "pending" | "approved" | "rejected"
+    }));
   } catch (error) {
     console.error('Erro ao buscar solicitações de créditos:', error);
     return [];
@@ -93,4 +96,4 @@ export const addCreditsToUser = async (userId: string, amount: number): Promise<
     console.error('Erro ao adicionar créditos ao usuário:', error);
     return false;
   }
-}; 
+};

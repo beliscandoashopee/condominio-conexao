@@ -1,3 +1,4 @@
+
 export type CheckoutType = 'credit_card' | 'manual' | 'pix';
 
 export interface CheckoutSetting {
@@ -14,4 +15,4 @@ export interface CheckoutContextType {
   error: string | null;
   fetchSettings: () => Promise<void>;
   updateSetting: (type: CheckoutType, enabled: boolean) => Promise<void>;
-} 
+}

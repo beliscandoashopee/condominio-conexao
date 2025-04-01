@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import ProfileCard from "@/components/ProfileCard";
 import AdCard from "@/components/AdCard";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/user/UserContext";
 import { getAdsByUserId, users } from "@/data/mockData";
 import { LogOut, Settings } from "lucide-react";
 
 const Profile = () => {
-  const { user, logout } = useUser();
+  const { user, signOut } = useUser();
   const [activeTab, setActiveTab] = useState("ads");
   
   if (!user) {
@@ -49,7 +49,7 @@ const Profile = () => {
               <Button 
                 variant="outline" 
                 className="gap-2 text-destructive hover:text-destructive"
-                onClick={logout}
+                onClick={signOut}
               >
                 <LogOut size={16} />
                 Sair

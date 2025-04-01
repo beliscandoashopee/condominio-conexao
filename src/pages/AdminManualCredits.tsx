@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function AdminManualCredits() {
-  const { manualRequests, fetchManualRequests, approveManualRequest, rejectManualRequest, isLoading } = useCredits();
+  const { manualRequests, fetchManualRequests, approveManualRequest, rejectManualRequest, loading } = useCredits();
 
   useEffect(() => {
     fetchManualRequests();
@@ -64,7 +64,7 @@ export default function AdminManualCredits() {
     }
   };
 
-  if (isLoading) {
+  if (loading) {
     return <div className="container mx-auto px-4 py-8">Carregando...</div>;
   }
 
@@ -131,4 +131,4 @@ export default function AdminManualCredits() {
       )}
     </div>
   );
-} 
+}

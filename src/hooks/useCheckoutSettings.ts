@@ -1,46 +1,81 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { Database } from "@/integrations/supabase/types";
 
-type CheckoutSettings = Database["public"]["Tables"]["checkout_settings"]["Row"];
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { toast } from '@/components/ui/use-toast';
+import { CheckoutType } from '@/contexts/checkout/types';
 
-export const useCheckoutSettings = () => {
-  const [settings, setSettings] = useState<CheckoutSettings | null>(null);
+interface CheckoutSettings {
+  id: string;
+  type: CheckoutType;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useCheckoutSettings() {
+  const [settings, setSettings] = useState<CheckoutSettings[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSettings = async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("checkout_settings")
-        .select("*")
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setSettings(data);
+        .from('checkout_settings')
+        .select('*');
+      
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      console.error("Erro ao buscar configurações:", error);
-      setError("Erro ao carregar configurações");
+      
+      setSettings(data || []);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load settings');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load checkout settings',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const updateSettings = async (newSettings: Partial<CheckoutSettings>) => {
+  const updateSetting = async (type: CheckoutType, enabled: boolean) => {
     try {
-      const { error } = await supabase
-        .from("checkout_settings")
-        .upsert(newSettings);
-
-      if (error) throw error;
-
-      setSettings((prev) => prev ? { ...prev, ...newSettings } : null);
-    } catch (error) {
-      console.error("Erro ao atualizar configurações:", error);
-      throw new Error("Erro ao atualizar configurações");
+      // Find the setting by type
+      const setting = settings.find(s => s.type === type);
+      
+      if (!setting) {
+        throw new Error(`Setting for type ${type} not found`);
+      }
+      
+      const { data, error } = await supabase
+        .from('checkout_settings')
+        .update({ enabled })
+        .eq('id', setting.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state
+      setSettings(settings.map(s => s.type === type ? { ...s, enabled } : s));
+      
+      toast({
+        title: 'Settings Updated',
+        description: `${type} payment method has been ${enabled ? 'enabled' : 'disabled'}.`,
+      });
+      
+      return data;
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: err.message || 'Failed to update setting',
+      });
+      throw err;
     }
   };
 
@@ -48,10 +83,26 @@ export const useCheckoutSettings = () => {
     fetchSettings();
   }, []);
 
+  // Add derived properties for backward compatibility
+  const settingsWithCompatProps = settings.map(setting => {
+    const compatProps: any = {};
+    
+    if (setting.type === 'pix') {
+      compatProps.pix_enabled = setting.enabled;
+    } else if (setting.type === 'credit_card') {
+      compatProps.credit_card_enabled = setting.enabled;
+    } else if (setting.type === 'manual') {
+      compatProps.manual_enabled = setting.enabled;
+    }
+    
+    return { ...setting, ...compatProps };
+  });
+
   return {
-    settings,
+    settings: settingsWithCompatProps,
     loading,
     error,
-    updateSettings,
+    fetchSettings,
+    updateSetting,
   };
-}; 
+}
