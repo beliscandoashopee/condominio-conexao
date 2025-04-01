@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import { toast } from "sonner";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -9,6 +10,7 @@ interface UserContextType {
   profile: Profile | null;
   isAdmin: boolean;
   signOut: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -64,12 +66,38 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     }
   };
 
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        setUser(data.user);
+        await fetchProfile(data.user.id);
+        toast.success("Login realizado com sucesso!");
+      }
+    } catch (error: any) {
+      console.error("Erro ao fazer login:", error);
+      toast.error("Falha no login. Verifique suas credenciais.");
+      throw error;
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      setUser(null);
+      setProfile(null);
+      setIsAdmin(false);
+      toast.success("Logout realizado com sucesso!");
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
+      toast.error("Erro ao fazer logout.");
     }
   };
 
@@ -80,6 +108,7 @@ const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
         profile,
         isAdmin,
         signOut,
+        login,
       }}
     >
       {children}

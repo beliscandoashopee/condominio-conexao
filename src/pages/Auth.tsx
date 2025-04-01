@@ -7,9 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { useUser } from "@/contexts/user/UserContext";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { login } = useUser();
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,14 +30,7 @@ const Auth = () => {
     
     try {
       setIsSubmitting(true);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) throw error;
-      
-      toast.success("Login realizado com sucesso!");
+      await login(email, password);
       navigate("/");
     } catch (error: any) {
       console.error("Erro ao fazer login:", error.message);
