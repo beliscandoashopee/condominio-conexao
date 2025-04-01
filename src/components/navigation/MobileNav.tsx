@@ -1,10 +1,10 @@
-
 import React from 'react';
-import { X, LogOut, Menu } from 'lucide-react';
+import { X, LogOut, Menu, Plus, LogIn } from 'lucide-react';
 import { Button } from '../ui/button';
 import NavLink from './NavLink';
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { RouteConfig } from './types';
+import { Link } from 'react-router-dom';
 
 export interface MobileNavProps {
   routes: RouteConfig[];
@@ -50,14 +50,32 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                 />
               ))}
 
-              {user && (
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={handleLogout}
-                >
-                  <LogOut size={18} className="mr-2" />
-                  Sair
+              {user ? (
+                <>
+                  <Button asChild className="w-full justify-start">
+                    <Link to="/marketplace/new" onClick={() => setOpen(false)}>
+                      <Plus size={18} className="mr-2" />
+                      Anunciar
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={async () => {
+                      await handleLogout();
+                      setOpen(false);
+                    }}
+                  >
+                    <LogOut size={18} className="mr-2" />
+                    Sair
+                  </Button>
+                </>
+              ) : (
+                <Button asChild className="w-full justify-start">
+                  <Link to="/auth" onClick={() => setOpen(false)}>
+                    <LogIn size={18} className="mr-2" />
+                    Entrar
+                  </Link>
                 </Button>
               )}
             </nav>

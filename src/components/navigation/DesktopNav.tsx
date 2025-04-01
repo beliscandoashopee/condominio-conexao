@@ -34,7 +34,7 @@ export const DesktopNav = ({
       {user ? (
         <>
           <Button asChild className="ml-2 rounded-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-md hover:shadow-lg transition-all">
-            <Link to="/marketplace?new=true">
+            <Link to="/marketplace/new">
               <Plus size={18} className="mr-2" />
               Anunciar
             </Link>
