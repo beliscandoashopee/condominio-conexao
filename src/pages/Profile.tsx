@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import ProfileCard from "@/components/ProfileCard";
 import AdCard from "@/components/AdCard";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/user/UserContext";
 import { getAdsByUserId, users } from "@/data/mockData";
 import { LogOut, Settings } from "lucide-react";
 
