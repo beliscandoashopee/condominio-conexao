@@ -1,89 +1,92 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { Plus, LogOut, LogIn, Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { NavLink } from "./NavLink";
-import { RouteConfig } from "./types";
 
-interface MobileNavProps {
+import React from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X, LogOut } from 'lucide-react';
+import { Button } from '../ui/button';
+import NavLink from './NavLink';
+import { RouteConfig } from './types';
+
+export interface MobileNavProps {
   routes: RouteConfig[];
   isActive: (path: string) => boolean;
   user: any;
   isAdmin: boolean;
   handleLogout: () => Promise<void>;
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export const MobileNav = ({
+export const MobileNav: React.FC<MobileNavProps> = ({
   routes,
   isActive,
   user,
   isAdmin,
   handleLogout,
-}: MobileNavProps) => {
-  const [open, setOpen] = React.useState(false);
-
+  open,
+  setOpen
+}) => {
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
-        >
-          <Menu className="h-6 w-6" />
-          <span className="sr-only">Toggle Menu</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="pr-0">
-        <SheetHeader>
-          <SheetTitle>Menu</SheetTitle>
-        </SheetHeader>
-        <nav className="flex flex-col gap-4 mt-4">
-          {routes.map((route) => (
-            <NavLink
-              key={route.path}
-              route={route}
-              isActive={isActive}
-              onClick={() => setOpen(false)}
-            />
-          ))}
+    <>
+      <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(true)}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-menu">
+          <line x1="4" x2="20" y1="12" y2="12"></line>
+          <line x1="4" x2="20" y1="6" y2="6"></line>
+          <line x1="4" x2="20" y1="18" y2="18"></line>
+        </svg>
+      </Button>
 
-          {user ? (
-            <>
-              <Button asChild className="w-full rounded-full bg-gradient-to-r from-primary to-blue-600 text-white shadow-md hover:shadow-lg transition-all">
-                <Link to="/marketplace?new=true" onClick={() => setOpen(false)}>
-                  <Plus size={18} className="mr-2" />
-                  Anunciar
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full rounded-full"
-                onClick={async () => {
-                  await handleLogout();
-                  setOpen(false);
-                }}
-              >
-                <LogOut size={18} className="mr-2" />
-                Sair
-              </Button>
-            </>
-          ) : (
-            <Button asChild className="w-full rounded-full">
-              <Link to="/auth" onClick={() => setOpen(false)}>
-                <LogIn size={18} className="mr-2" />
-                Entrar
-              </Link>
-            </Button>
-          )}
-        </nav>
-      </SheetContent>
-    </Sheet>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/70 z-50 md:hidden"
+            onClick={() => setOpen(false)}
+          >
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+              className="fixed right-0 top-0 h-full w-3/4 max-w-xs bg-background p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-end mb-8">
+                <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+                  <X size={24} />
+                </Button>
+              </div>
+
+              <nav className="flex flex-col items-start space-y-4">
+                {routes.map((route) => (
+                  <NavLink
+                    key={route.path}
+                    href={route.path}
+                    isActive={isActive(route.path)}
+                    onClick={() => setOpen(false)}
+                  >
+                    {route.icon && <route.icon size={18} className="mr-2" />}
+                    {route.name}
+                  </NavLink>
+                ))}
+
+                {user && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={handleLogout}
+                  >
+                    <LogOut size={18} className="mr-2" />
+                    Sair
+                  </Button>
+                )}
+              </nav>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };

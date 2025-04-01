@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -11,7 +12,7 @@ import MarketplaceHeader from "@/components/marketplace/MarketplaceHeader";
 import SearchBar from "@/components/marketplace/SearchBar";
 import FilterSheet from "@/components/marketplace/FilterSheet";
 import CreateAdDialog from "@/components/marketplace/CreateAdDialog";
-import CreditsDialog from "@/components/marketplace/CreditsDialog";
+import { CreditsDialog } from "@/components/marketplace/CreditsDialog";
 import AdList from "@/components/marketplace/AdList";
 
 const Marketplace = () => {
@@ -42,7 +43,7 @@ const Marketplace = () => {
       setIsCreateDialogOpen(true);
     }
 
-    if (user) {
+    if (user && user.id) {
       fetchCredits(user.id);
     }
   }, [location.search, user, fetchCredits]);

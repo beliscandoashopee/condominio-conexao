@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/user/UserContext";
@@ -20,13 +21,24 @@ const CheckoutSettings = () => {
     }
   }, [user, isAdmin, navigate]);
 
-  const handleToggle = async (setting: keyof typeof settings) => {
+  const handleToggle = async (setting: string) => {
     if (!settings) return;
 
     try {
-      await updateSettings({
-        [setting]: !settings[setting],
-      });
+      const updateData: any = {};
+      
+      if (setting === "pix_enabled" || setting === "credit_card_enabled" || setting === "manual_enabled") {
+        // Determine which setting type we're updating
+        let type: string = '';
+        if (setting === "pix_enabled") type = "pix";
+        else if (setting === "credit_card_enabled") type = "credit_card";
+        else if (setting === "manual_enabled") type = "manual";
+        
+        updateData.type = type;
+        updateData.enabled = !settings[setting as keyof typeof settings];
+      }
+      
+      await updateSettings(updateData);
       toast.success("Configurações atualizadas com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar configurações:", error);
@@ -77,7 +89,7 @@ const CheckoutSettings = () => {
                 </p>
               </div>
               <Switch
-                checked={settings.pix_enabled}
+                checked={!!settings.pix_enabled}
                 onCheckedChange={() => handleToggle("pix_enabled")}
               />
             </div>
@@ -90,7 +102,7 @@ const CheckoutSettings = () => {
                 </p>
               </div>
               <Switch
-                checked={settings.credit_card_enabled}
+                checked={!!settings.credit_card_enabled}
                 onCheckedChange={() => handleToggle("credit_card_enabled")}
               />
             </div>
@@ -103,7 +115,7 @@ const CheckoutSettings = () => {
                 </p>
               </div>
               <Switch
-                checked={settings.manual_enabled}
+                checked={!!settings.manual_enabled}
                 onCheckedChange={() => handleToggle("manual_enabled")}
               />
             </div>
@@ -114,4 +126,4 @@ const CheckoutSettings = () => {
   );
 };
 
-export default CheckoutSettings; 
+export default CheckoutSettings;
