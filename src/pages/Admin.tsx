@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/user/UserContext"; // Updated path to match App.tsx
 import { supabase } from "@/integrations/supabase/client";
 import { useCredits } from "@/contexts/credits";
 import { CreditPackage, CreditCost } from "@/contexts/credits/types";
