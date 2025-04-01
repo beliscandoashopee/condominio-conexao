@@ -54,3 +54,25 @@ export type CreditsContextType = {
   hasEnoughCredits: (actionType: string) => boolean;
   getCreditCost: (actionType: string) => number;
 };
+
+export type CheckoutType = 'credit_card' | 'manual' | 'pix';
+
+export interface CheckoutSetting {
+  id: string;
+  type: CheckoutType;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+  // Compatibility properties for existing code
+  pix_enabled?: boolean;
+  credit_card_enabled?: boolean;
+  manual_enabled?: boolean;
+}
+
+export interface CheckoutContextType {
+  settings: CheckoutSetting[];
+  isLoading: boolean;
+  error: string | null;
+  fetchSettings: () => Promise<void>;
+  updateSetting: (type: CheckoutType, enabled: boolean) => Promise<void>;
+}

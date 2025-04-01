@@ -1,161 +1,136 @@
-
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
-import CategoryFilter from "@/components/CategoryFilter";
-import { advertisements } from "@/data/mockData";
-import { useUser } from "@/contexts/UserContext";
+import { useSearchParams } from "react-router-dom";
+import { useUser } from "@/contexts/user/UserContext";
 import { useCredits } from "@/contexts/credits";
-
-// Componentes refatorados
 import MarketplaceHeader from "@/components/marketplace/MarketplaceHeader";
+import AdList from "@/components/marketplace/AdList";
 import SearchBar from "@/components/marketplace/SearchBar";
 import FilterSheet from "@/components/marketplace/FilterSheet";
 import CreateAdDialog from "@/components/marketplace/CreateAdDialog";
 import { CreditsDialog } from "@/components/marketplace/CreditsDialog";
-import AdList from "@/components/marketplace/AdList";
+import NoResultsFound from "@/components/marketplace/NoResultsFound";
 
 const Marketplace = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [ads, setAds] = useState([
+    {
+      id: "1",
+      title: "Guitarra Fender Stratocaster",
+      description: "Em perfeito estado, pouco usada.",
+      price: 2500,
+      location: "São Paulo, SP",
+      category: "Instrumentos Musicais",
+      createdAt: "2024-08-01T10:00:00",
+      image: "https://picsum.photos/400/300",
+      userId: "user123",
+    },
+    {
+      id: "2",
+      title: "iPhone 13 Pro Max",
+      description: "128GB, bateria 100%.",
+      price: 5000,
+      location: "Rio de Janeiro, RJ",
+      category: "Eletrônicos",
+      createdAt: "2024-08-05T15:30:00",
+      image: "https://picsum.photos/400/300",
+      userId: "user456",
+    },
+    {
+      id: "3",
+      title: "Tênis Nike Air Max",
+      description: "Novo, nunca usado, tamanho 42.",
+      price: 800,
+      location: "Belo Horizonte, MG",
+      category: "Vestuário",
+      createdAt: "2024-08-10T08:45:00",
+      image: "https://picsum.photos/400/300",
+      userId: "user789",
+    },
+  ]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredAds, setFilteredAds] = useState(ads);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    category: "",
+    minPrice: "",
+    maxPrice: "",
+    location: "",
+  });
+
   const { user } = useUser();
   const { fetchCredits } = useCredits();
-  
-  // Estados locais
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isCreditDialogOpen, setIsCreditDialogOpen] = useState(false);
-  const [priceRange, setPriceRange] = useState<[number | null, number | null]>([null, null]);
-  const [sortOption, setSortOption] = useState("recent");
-  
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const categoryParam = params.get("category");
-    const newParam = params.get("new");
-    
-    if (categoryParam) {
-      setSelectedCategory(categoryParam);
-    }
-    
-    if (newParam === "true" && user) {
-      setIsCreateDialogOpen(true);
-    }
 
-    if (user && user.id) {
+  useEffect(() => {
+    if (user) {
       fetchCredits(user.id);
     }
-  }, [location.search, user, fetchCredits]);
-  
-  // Filtragem dos anúncios
-  const filteredAds = advertisements.filter((ad) => {
-    const matchesSearch = searchTerm === "" || 
-      ad.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ad.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = selectedCategory === null || ad.category === selectedCategory;
-    
-    const matchesMinPrice = priceRange[0] === null || ad.price >= priceRange[0];
-    const matchesMaxPrice = priceRange[1] === null || ad.price <= priceRange[1];
-    
-    return matchesSearch && matchesCategory && matchesMinPrice && matchesMaxPrice;
-  });
-  
-  // Ordenação dos anúncios
-  const sortedAds = [...filteredAds].sort((a, b) => {
-    switch (sortOption) {
-      case "recent":
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case "priceAsc":
-        return a.price - b.price;
-      case "priceDesc":
-        return b.price - a.price;
-      case "popular":
-        return b.views - a.views;
-      default:
-        return 0;
+  }, [user, fetchCredits]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [ads, searchTerm, filters]);
+
+  const applyFilters = () => {
+    let newFilteredAds = [...ads];
+
+    if (searchTerm) {
+      newFilteredAds = newFilteredAds.filter((ad) =>
+        ad.title.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
-  });
-  
-  const handleCategorySelect = (categoryId: string | null) => {
-    setSelectedCategory(categoryId);
-    
-    const params = new URLSearchParams(location.search);
-    if (categoryId === null) {
-      params.delete("category");
-    } else {
-      params.set("category", categoryId);
+
+    if (filters.category) {
+      newFilteredAds = newFilteredAds.filter(
+        (ad) => ad.category === filters.category
+      );
     }
-    
-    navigate({
-      pathname: location.pathname,
-      search: params.toString()
-    });
+
+    if (filters.minPrice) {
+      const minPrice = parseFloat(filters.minPrice);
+      newFilteredAds = newFilteredAds.filter((ad) => ad.price >= minPrice);
+    }
+
+    if (filters.maxPrice) {
+      const maxPrice = parseFloat(filters.maxPrice);
+      newFilteredAds = newFilteredAds.filter((ad) => ad.price <= maxPrice);
+    }
+
+    if (filters.location) {
+      newFilteredAds = newFilteredAds.filter((ad) =>
+        ad.location.toLowerCase().includes(filters.location.toLowerCase())
+      );
+    }
+
+    setFilteredAds(newFilteredAds);
   };
-  
-  const clearFilters = () => {
-    setSearchTerm("");
-    setSelectedCategory(null);
-    setPriceRange([null, null]);
-    setSortOption("recent");
-    
-    navigate("/marketplace");
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
   };
+
+  const [showCreateAd, setShowCreateAd] = useState(false);
+  const [showCreditsDialog, setShowCreditsDialog] = useState(false);
   
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
+    <div className="container mx-auto px-4 pt-24 pb-16">
+      <MarketplaceHeader onNewAdClick={() => setShowCreateAd(true)} />
       
-      <main className="flex-1 pt-24 pb-16">
-        <div className="container mx-auto px-4">
-          <MarketplaceHeader 
-            onCreateAdClick={() => setIsCreateDialogOpen(true)}
-            onCreditDialogOpen={() => setIsCreditDialogOpen(true)}
-          />
-          
-          <SearchBar 
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            sortOption={sortOption}
-            setSortOption={setSortOption}
-            onOpenFilters={() => setIsFilterOpen(true)}
-          />
-          
-          <CategoryFilter
-            selectedCategory={selectedCategory}
-            onSelectCategory={handleCategorySelect}
-          />
-          
-          <AdList 
-            ads={sortedAds} 
-            onClearFilters={clearFilters}
-          />
-        </div>
-      </main>
-      
-      <CreateAdDialog 
-        isOpen={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        onCreditDialogOpen={() => setIsCreditDialogOpen(true)}
-      />
+      <div className="my-6">
+        <SearchBar
+          value={searchTerm}
+          onChange={handleSearchChange}
+          onOpenFilters={() => setShowFilters(true)}
+        />
+      </div>
 
-      <CreditsDialog 
-        isOpen={isCreditDialogOpen}
-        onOpenChange={setIsCreditDialogOpen}
-      />
+      {filteredAds.length > 0 ? (
+        <AdList ads={filteredAds} />
+      ) : (
+        <NoResultsFound searchTerm={searchTerm} />
+      )}
 
-      <FilterSheet 
-        isOpen={isFilterOpen}
-        onOpenChange={setIsFilterOpen}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        priceRange={priceRange}
-        setPriceRange={setPriceRange}
-        sortOption={sortOption}
-        setSortOption={setSortOption}
-        onClearFilters={clearFilters}
-      />
+      <CreateAdDialog open={showCreateAd} onOpenChange={setShowCreateAd} />
+      <CreditsDialog open={showCreditsDialog} onOpenChange={setShowCreditsDialog} />
+      <FilterSheet open={showFilters} onOpenChange={setShowFilters} />
     </div>
   );
 };

@@ -1,145 +1,192 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@/contexts/user/UserContext";
-import { useCredits } from "@/contexts/credits/CreditsContext";
-import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
-import { toast } from "sonner";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { CreditCard, Receipt, ArrowLeft, Landmark } from "lucide-react";
+import { useUser } from "@/contexts/user/UserContext";
+import { useCredits } from "@/contexts/credits";
+import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
+import { useToast } from "@/components/ui/use-toast";
 
 const PurchaseCredits = () => {
   const navigate = useNavigate();
   const { user } = useUser();
-  const { creditPackages, loading: packagesLoading, purchaseCredits } = useCredits();
-  const { settings, loading: settingsLoading } = useCheckoutSettings();
+  const { creditPackages, purchaseCredits } = useCredits();
+  const { settings, loading: loadingSettings } = useCheckoutSettings();
+  const { toast } = useToast();
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
-  const [processing, setProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<string>("credit_card");
+  
+  // Find enabled payment methods
+  const findSetting = (type: 'pix' | 'credit_card' | 'manual') => {
+    return settings.find(s => s.type === type);
+  };
 
+  const pixEnabled = findSetting('pix')?.enabled || false;
+  const creditCardEnabled = findSetting('credit_card')?.enabled || false;
+  const manualEnabled = findSetting('manual')?.enabled || false;
+
+  // Set default payment method to the first enabled one
   useEffect(() => {
-    if (!user) {
-      navigate("/auth");
+    if (creditCardEnabled) {
+      setPaymentMethod("credit_card");
+    } else if (pixEnabled) {
+      setPaymentMethod("pix");
+    } else if (manualEnabled) {
+      setPaymentMethod("manual");
+    }
+  }, [creditCardEnabled, pixEnabled, manualEnabled]);
+
+  const handlePurchase = async () => {
+    if (!selectedPackage || !user?.id) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Selecione um pacote de créditos para continuar.",
+      });
       return;
     }
-  }, [user, navigate]);
 
-  const handlePurchase = async (packageId: string) => {
-    if (!user || !settings) return;
+    if (paymentMethod === "manual") {
+      navigate("/manual-credit-request");
+      return;
+    }
 
-    setProcessing(true);
-    try {
-      const success = await purchaseCredits(packageId, user.id);
-      if (success) {
-        toast.success("Créditos comprados com sucesso!");
-        navigate("/purchase-success");
-      } else {
-        toast.error("Erro ao comprar créditos. Tente novamente.");
-      }
-    } catch (error) {
-      console.error("Erro ao comprar créditos:", error);
-      toast.error("Erro ao processar pagamento");
-    } finally {
-      setProcessing(false);
+    const success = await purchaseCredits(selectedPackage, user.id);
+    
+    if (success) {
+      const packageData = creditPackages.find(p => p.id === selectedPackage);
+      navigate("/purchase-success", { 
+        state: { 
+          packageData,
+          paymentMethod: paymentMethod === "credit_card" ? "Cartão de Crédito" : "PIX"
+        } 
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Erro na compra",
+        description: "Não foi possível processar sua compra. Tente novamente.",
+      });
     }
   };
 
-  if (packagesLoading || settingsLoading) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!settings) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-700">
-            Erro ao carregar configurações
-          </h2>
-          <p className="text-gray-500 mt-2">
-            Não foi possível carregar as configurações de checkout.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const availablePaymentMethods = [
-    settings.pix_enabled && "PIX",
-    settings.credit_card_enabled && "Cartão de Crédito",
-    settings.manual_enabled && "Créditos Manuais",
-  ].filter(Boolean);
-
-  if (availablePaymentMethods.length === 0) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-700">
-            Pagamentos Temporariamente Desativados
-          </h2>
-          <p className="text-gray-500 mt-2">
-            Todos os métodos de pagamento estão temporariamente desativados.
-            Por favor, tente novamente mais tarde.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">Comprar Créditos</h1>
-      
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {creditPackages.map((pkg) => (
-          <Card key={pkg.id}>
+    <div className="container mx-auto px-4 py-16 mt-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)}
+            className="mb-4"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar
+          </Button>
+          <h1 className="text-3xl font-bold">Comprar Créditos</h1>
+          <p className="text-muted-foreground mt-2">
+            Escolha um pacote de créditos e a forma de pagamento
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          {creditPackages.map((pkg) => (
+            <Card
+              key={pkg.id}
+              className={`cursor-pointer transition-all hover:shadow-md ${
+                selectedPackage === pkg.id ? "border-primary ring-2 ring-primary ring-opacity-50" : ""
+              }`}
+              onClick={() => setSelectedPackage(pkg.id)}
+            >
+              <CardHeader className="pb-3">
+                <CardTitle>{pkg.name}</CardTitle>
+                <CardDescription>
+                  {pkg.credits} créditos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-2xl font-bold text-primary">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(pkg.price)}
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  variant={selectedPackage === pkg.id ? "default" : "outline"}
+                  className="w-full"
+                  onClick={() => setSelectedPackage(pkg.id)}
+                >
+                  {selectedPackage === pkg.id ? "Selecionado" : "Selecionar"}
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+
+        {selectedPackage && (
+          <Card className="mb-8">
             <CardHeader>
-              <CardTitle>{pkg.name}</CardTitle>
+              <CardTitle>Método de Pagamento</CardTitle>
+              <CardDescription>
+                Escolha como deseja pagar pelos seus créditos
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold mb-4">
-                R$ {pkg.price.toFixed(2)}
-              </div>
-              <div className="text-gray-500 mb-6">
-                {pkg.credits} créditos
-              </div>
-              <Button
-                className="w-full"
-                onClick={() => handlePurchase(pkg.id)}
-                disabled={processing}
-              >
-                {processing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processando...
-                  </>
-                ) : (
-                  "Comprar"
-                )}
-              </Button>
+              <Tabs defaultValue={paymentMethod} onValueChange={setPaymentMethod}>
+                <TabsList className="grid w-full grid-cols-3">
+                  {creditCardEnabled && (
+                    <TabsTrigger value="credit_card" disabled={!creditCardEnabled}>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Cartão
+                    </TabsTrigger>
+                  )}
+                  {pixEnabled && (
+                    <TabsTrigger value="pix" disabled={!pixEnabled}>
+                      <Landmark className="h-4 w-4 mr-2" />
+                      PIX
+                    </TabsTrigger>
+                  )}
+                  {manualEnabled && (
+                    <TabsTrigger value="manual" disabled={!manualEnabled}>
+                      <Receipt className="h-4 w-4 mr-2" />
+                      Manual
+                    </TabsTrigger>
+                  )}
+                </TabsList>
+                
+                <TabsContent value="credit_card" className="mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Seu pagamento será processado de forma segura com cartão de crédito.
+                  </p>
+                </TabsContent>
+                
+                <TabsContent value="pix" className="mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Pague instantaneamente usando o PIX.
+                  </p>
+                </TabsContent>
+                
+                <TabsContent value="manual" className="mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Envie uma solicitação manual que será revisada por nossa equipe.
+                  </p>
+                </TabsContent>
+              </Tabs>
             </CardContent>
+            <CardFooter>
+              <Button onClick={handlePurchase} className="w-full">
+                {paymentMethod === "manual" 
+                  ? "Ir para Solicitação Manual" 
+                  : "Finalizar Compra"}
+              </Button>
+            </CardFooter>
           </Card>
-        ))}
+        )}
       </div>
-
-      {settings.manual_enabled && (
-        <div className="mt-8 text-center">
-          <p className="text-gray-500 mb-4">
-            Prefere solicitar créditos manualmente?
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => navigate("/manual-credit-request")}
-          >
-            Solicitar Créditos Manualmente
-          </Button>
-        </div>
-      )}
     </div>
   );
 };

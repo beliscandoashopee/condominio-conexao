@@ -1,92 +1,81 @@
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { CheckoutType } from "@/contexts/checkout/types";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { toast } from '@/components/ui/use-toast';
+import { CheckoutType } from '@/contexts/checkout/types';
 
-// Define a simpler type for checkout settings
-type CheckoutSettings = {
+interface CheckoutSettings {
   id: string;
   type: CheckoutType;
-  enabled: boolean | null;
+  enabled: boolean;
   created_at: string;
   updated_at: string;
-  
-  // Add these properties to support the existing code
-  pix_enabled?: boolean;
-  credit_card_enabled?: boolean;
-  manual_enabled?: boolean;
-};
+}
 
-export const useCheckoutSettings = () => {
-  const [settings, setSettings] = useState<CheckoutSettings | null>(null);
+export function useCheckoutSettings() {
+  const [settings, setSettings] = useState<CheckoutSettings[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSettings = async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("checkout_settings")
-        .select("*")
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        // Create a settings object with both the standard fields and the legacy fields
-        const settingsData = data as CheckoutSettings;
-        
-        // Add compatibility properties for existing code
-        if (settingsData.type === 'pix') {
-          settingsData.pix_enabled = settingsData.enabled;
-        } else if (settingsData.type === 'credit_card') {
-          settingsData.credit_card_enabled = settingsData.enabled;
-        } else if (settingsData.type === 'manual') {
-          settingsData.manual_enabled = settingsData.enabled;
-        }
-        
-        setSettings(settingsData);
+        .from('checkout_settings')
+        .select('*');
+      
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      console.error("Erro ao buscar configurações:", error);
-      setError("Erro ao carregar configurações");
+      
+      setSettings(data || []);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load settings');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load checkout settings',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const updateSettings = async (newSettings: Partial<CheckoutSettings>) => {
+  const updateSetting = async (type: CheckoutType, enabled: boolean) => {
     try {
-      // Make sure we're including a valid type
-      const updateData = { ...newSettings };
-      if (!updateData.type && settings?.type) {
-        updateData.type = settings.type;
+      // Find the setting by type
+      const setting = settings.find(s => s.type === type);
+      
+      if (!setting) {
+        throw new Error(`Setting for type ${type} not found`);
       }
       
-      const { error } = await supabase
-        .from("checkout_settings")
-        .upsert(updateData as any);
-
-      if (error) throw error;
-
-      // Update the local state with both standard and legacy properties
-      setSettings((prev) => {
-        if (!prev) return null;
-        const updated = { ...prev, ...newSettings };
-        
-        // Update compatibility properties
-        if (updated.type === 'pix') {
-          updated.pix_enabled = updated.enabled;
-        } else if (updated.type === 'credit_card') {
-          updated.credit_card_enabled = updated.enabled;
-        } else if (updated.type === 'manual') {
-          updated.manual_enabled = updated.enabled;
-        }
-        
-        return updated;
+      const { data, error } = await supabase
+        .from('checkout_settings')
+        .update({ enabled })
+        .eq('id', setting.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update local state
+      setSettings(settings.map(s => s.type === type ? { ...s, enabled } : s));
+      
+      toast({
+        title: 'Settings Updated',
+        description: `${type} payment method has been ${enabled ? 'enabled' : 'disabled'}.`,
       });
-    } catch (error) {
-      console.error("Erro ao atualizar configurações:", error);
-      throw new Error("Erro ao atualizar configurações");
+      
+      return data;
+    } catch (err: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: err.message || 'Failed to update setting',
+      });
+      throw err;
     }
   };
 
@@ -94,10 +83,26 @@ export const useCheckoutSettings = () => {
     fetchSettings();
   }, []);
 
+  // Add derived properties for backward compatibility
+  const settingsWithCompatProps = settings.map(setting => {
+    const compatProps: any = {};
+    
+    if (setting.type === 'pix') {
+      compatProps.pix_enabled = setting.enabled;
+    } else if (setting.type === 'credit_card') {
+      compatProps.credit_card_enabled = setting.enabled;
+    } else if (setting.type === 'manual') {
+      compatProps.manual_enabled = setting.enabled;
+    }
+    
+    return { ...setting, ...compatProps };
+  });
+
   return {
-    settings,
+    settings: settingsWithCompatProps,
     loading,
     error,
-    updateSettings,
+    fetchSettings,
+    updateSetting,
   };
-};
+}

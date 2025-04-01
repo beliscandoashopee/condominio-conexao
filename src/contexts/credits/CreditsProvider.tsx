@@ -1,125 +1,106 @@
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useUser } from "@/contexts/user/UserContext";
+import { ManualCreditRequest, CreditPackage, CreditCost, UserCredits, CreditsContextType } from "./types";
+import { fetchUserCredits, fetchCreditPackages as fetchPackages, fetchCreditCosts as fetchCosts, purchaseCreditsAPI, spendCreditsAPI } from "./creditsAPI";
+import { fetchManualRequests as fetchRequests, requestManualCredits as requestCredits, approveRequest, rejectRequest } from "./manualCreditsAPI";
+import { getCreditCostValue, hasEnoughCreditsCheck } from "./useCreditsUtils";
 
-import React, { useState, useEffect } from "react";
-import { UserCredits, CreditPackage, CreditCost, ManualCreditRequest } from "./types";
-import { 
-  fetchUserCredits,
-  fetchAllCreditPackages, 
-  fetchAllCreditCosts,
-  purchaseUserCredits,
-  spendUserCredits
-} from "./creditsAPI";
-import {
-  createManualCreditRequest,
-  fetchManualRequests,
-  updateManualRequestStatus,
-  addCreditsToUser
-} from "./manualCreditsAPI";
-import { useCreditsUtils } from "./useCreditsUtils";
-import CreditsContext from "./CreditsContext";
-import { supabase } from "@/integrations/supabase/client";
+const CreditsContext = createContext<CreditsContextType | undefined>(undefined);
 
-export const CreditsProvider = ({ children }: { children: React.ReactNode }) => {
+export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useUser();
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [creditCosts, setCreditCosts] = useState<CreditCost[]>([]);
   const [manualRequests, setManualRequests] = useState<ManualCreditRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const { hasEnoughCredits, getCreditCost } = useCreditsUtils(credits, creditCosts);
 
   useEffect(() => {
-    // Buscar pacotes de créditos e custos das ações (não dependem do usuário)
-    const loadInitialData = async () => {
-      setLoading(true);
-      try {
-        await Promise.all([
-          fetchCreditPackages(),
-          fetchCreditCosts(),
-          fetchManualRequests()
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadInitialData();
-  }, []);
-
-  // Listener para mudanças na autenticação
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session?.user) {
-          fetchCredits(session.user.id);
-        } else {
-          setCredits(null);
-        }
-      }
-    );
-
-    // Verificar sessão atual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchCredits(session.user.id);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+    if (user?.id) {
+      fetchCredits(user.id);
+      fetchCreditPackages();
+      fetchCreditCosts();
+      fetchManualRequests();
+    }
+  }, [user?.id]);
 
   const fetchCredits = async (userId: string) => {
     if (!userId) return;
     
     setLoading(true);
-    setError(null);
     try {
       const userCredits = await fetchUserCredits(userId);
-      if (userCredits) {
-        setCredits(userCredits);
-      } else {
-        // Se não retornou créditos mas também não deu erro, provavelmente é um novo usuário
-        setCredits({ user_id: userId, balance: 0 });
-      }
-    } catch (err: any) {
-      console.error("Erro ao buscar créditos:", err?.message);
-      setError("Não foi possível carregar seus créditos.");
+      setCredits(userCredits);
+      setError(null);
+    } catch (err) {
+      setError("Falha ao carregar os créditos");
+      console.error("Error fetching credits:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  const refetchCredits = async () => {
+    if (!user?.id) return;
+    await fetchCredits(user.id);
+  };
+
   const fetchCreditPackages = async () => {
+    setLoading(true);
     try {
-      const packages = await fetchAllCreditPackages();
+      const packages = await fetchPackages();
       setCreditPackages(packages);
-    } catch (err: any) {
-      console.error("Erro ao buscar pacotes de crédito:", err?.message);
+      setError(null);
+    } catch (err) {
+      setError("Falha ao carregar os pacotes de créditos");
+      console.error("Error fetching credit packages:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchCreditCosts = async () => {
+    setLoading(true);
     try {
-      const costs = await fetchAllCreditCosts();
+      const costs = await fetchCosts();
       setCreditCosts(costs);
-    } catch (err: any) {
-      console.error("Erro ao buscar custos das ações:", err?.message);
+      setError(null);
+    } catch (err) {
+      setError("Falha ao carregar os custos de créditos");
+      console.error("Error fetching credit costs:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchManualRequestsHandler = async () => {
+  const fetchManualRequests = async () => {
+    setLoading(true);
     try {
-      const requests = await fetchManualRequests();
-      if (Array.isArray(requests)) {
-        setManualRequests(requests);
-      } else {
-        setManualRequests([]);
-      }
-    } catch (err: any) {
-      console.error("Erro ao buscar solicitações de créditos:", err?.message);
-      setManualRequests([]);
+      const requests = await fetchRequests();
+      setManualRequests(requests);
+      setError(null);
+    } catch (err) {
+      setError("Falha ao carregar as solicitações manuais");
+      console.error("Error fetching manual requests:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const purchaseCredits = async (packageId: string, userId: string) => {
+    setLoading(true);
+    try {
+      await purchaseCreditsAPI(packageId, userId);
+      await fetchCredits(userId);
+      setError(null);
+      return true;
+    } catch (err) {
+      setError("Falha ao comprar créditos");
+      console.error("Error purchasing credits:", err);
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -127,197 +108,113 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     amount: number,
     paymentMethod: string,
     paymentDetails: string
-  ): Promise<boolean> => {
-    if (!credits?.user_id) return false;
-
+  ) => {
+    if (!user?.id) return false;
+    
+    setLoading(true);
     try {
-      setLoading(true);
+      await requestCredits(user.id, amount, paymentMethod, paymentDetails);
       setError(null);
-      
-      const success = await createManualCreditRequest(
-        credits.user_id,
-        amount,
-        paymentMethod,
-        paymentDetails
-      );
-
-      if (success) {
-        await fetchManualRequestsHandler();
-      }
-
-      return success;
-    } catch (err: any) {
-      console.error("Erro ao solicitar créditos:", err?.message);
-      setError("Não foi possível criar a solicitação de créditos.");
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const approveManualRequest = async (requestId: string): Promise<boolean> => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Buscar a solicitação
-      const request = manualRequests.find(r => r.id === requestId);
-      if (!request) {
-        throw new Error("Solicitação não encontrada.");
-      }
-
-      // Atualizar o status da solicitação
-      const statusUpdated = await updateManualRequestStatus(requestId, 'approved');
-      if (!statusUpdated) {
-        throw new Error("Não foi possível atualizar o status da solicitação.");
-      }
-
-      // Adicionar os créditos ao usuário
-      const creditsAdded = await addCreditsToUser(request.user_id, request.amount);
-      if (!creditsAdded) {
-        throw new Error("Não foi possível adicionar os créditos ao usuário.");
-      }
-
-      // Atualizar os dados
-      await Promise.all([
-        fetchManualRequestsHandler(),
-        fetchCredits(request.user_id)
-      ]);
-
       return true;
-    } catch (err: any) {
-      console.error("Erro ao aprovar solicitação:", err?.message);
-      setError("Não foi possível aprovar a solicitação.");
+    } catch (err) {
+      setError("Falha ao solicitar créditos");
+      console.error("Error requesting credits:", err);
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const rejectManualRequest = async (requestId: string): Promise<boolean> => {
+  const approveManualRequest = async (requestId: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
+      await approveRequest(requestId);
+      await fetchManualRequests();
       setError(null);
-
-      const success = await updateManualRequestStatus(requestId, 'rejected');
-      if (success) {
-        await fetchManualRequestsHandler();
-      }
-
-      return success;
-    } catch (err: any) {
-      console.error("Erro ao rejeitar solicitação:", err?.message);
-      setError("Não foi possível rejeitar a solicitação.");
+      return true;
+    } catch (err) {
+      setError("Falha ao aprovar solicitação");
+      console.error("Error approving request:", err);
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const purchaseCredits = async (packageId: string, userId: string): Promise<boolean> => {
-    if (!userId) {
-      return false;
-    }
-
+  const rejectManualRequest = async (requestId: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
+      await rejectRequest(requestId);
+      await fetchManualRequests();
       setError(null);
-      
-      // Buscar o pacote selecionado
-      const selectedPackage = creditPackages.find(pkg => pkg.id === packageId);
-      if (!selectedPackage) {
-        throw new Error("Pacote não encontrado.");
-      }
-
-      // Processar a compra
-      const success = await purchaseUserCredits(packageId, userId, selectedPackage);
-      
-      // Atualizar o saldo se a compra foi bem-sucedida
-      if (success) {
-        await fetchCredits(userId);
-      }
-      
-      return success;
-    } catch (err: any) {
-      console.error("Erro ao comprar créditos:", err?.message);
-      setError("Não foi possível completar a compra de créditos.");
+      return true;
+    } catch (err) {
+      setError("Falha ao rejeitar solicitação");
+      console.error("Error rejecting request:", err);
       return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const spendCredits = async (actionType: string, userId: string, amount?: number): Promise<boolean> => {
-    if (!userId) {
-      return false;
-    }
-
-    if (!credits) {
+  const spendCredits = async (actionType: string, userId: string, amount?: number) => {
+    setLoading(true);
+    try {
+      const cost = amount || getCreditCost(actionType);
+      await spendCreditsAPI(userId, cost);
       await fetchCredits(userId);
-      if (!credits) {
-        return false;
-      }
-    }
-
-    try {
-      setLoading(true);
       setError(null);
-      
-      // Buscar o custo da ação
-      const costEntry = creditCosts.find(cost => cost.action_type === actionType);
-      if (!costEntry) {
-        throw new Error("Tipo de ação não encontrado.");
-      }
-
-      // Usar o valor específico se fornecido, ou o custo padrão da ação
-      const creditsToSpend = amount || costEntry.cost;
-      
-      // Verificar se o usuário tem créditos suficientes
-      if (credits.balance < creditsToSpend) {
-        return false;
-      }
-
-      // Processar o gasto
-      const success = await spendUserCredits(actionType, userId, creditsToSpend);
-      
-      // Atualizar o saldo se o gasto foi bem-sucedido
-      if (success) {
-        await fetchCredits(userId);
-      }
-      
-      return success;
-    } catch (err: any) {
-      console.error("Erro ao gastar créditos:", err?.message);
-      setError("Não foi possível completar a operação.");
+      return true;
+    } catch (err) {
+      setError("Falha ao gastar créditos");
+      console.error("Error spending credits:", err);
       return false;
     } finally {
       setLoading(false);
     }
+  };
+
+  const getCreditCost = (actionType: string): number => {
+    return getCreditCostValue(actionType, creditCosts);
+  };
+
+  const hasEnoughCredits = (actionType: string): boolean => {
+    if (!credits) return false;
+    return hasEnoughCreditsCheck(actionType, credits, creditCosts);
   };
 
   return (
-    <CreditsContext.Provider 
-      value={{ 
-        credits, 
-        creditPackages, 
+    <CreditsContext.Provider
+      value={{
+        credits,
+        loading,
+        error,
+        creditPackages,
         creditCosts,
         manualRequests,
-        fetchCredits, 
-        fetchCreditPackages, 
+        fetchCredits,
+        fetchCreditPackages,
         fetchCreditCosts,
-        fetchManualRequests: fetchManualRequestsHandler,
+        fetchManualRequests,
         purchaseCredits,
         requestManualCredits,
         approveManualRequest,
         rejectManualRequest,
-        spendCredits, 
-        hasEnoughCredits, 
+        spendCredits,
+        hasEnoughCredits,
         getCreditCost,
-        loading,
-        error
+        refetchCredits
       }}
     >
       {children}
     </CreditsContext.Provider>
   );
+};
+
+export const useCredits = (): CreditsContextType => {
+  const context = useContext(CreditsContext);
+  if (context === undefined) {
+    throw new Error("useCredits must be used within a CreditsProvider");
+  }
+  return context;
 };

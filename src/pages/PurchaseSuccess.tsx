@@ -1,127 +1,121 @@
 
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle2, PackageCheck, CreditCard, Home, Package } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { useCredits } from '@/contexts/credits/CreditsContext';
-import { Layout } from '@/components/Layout';
+import React, { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Check, ArrowRight, CreditCard, ShoppingBag } from "lucide-react";
+import { useCredits } from "@/contexts/credits";
+import { useUser } from "@/contexts/user/UserContext";
 
-interface LocationState {
-  packageName?: string;
-  credits?: number;
-  price?: number;
-}
-
-export default function PurchaseSuccess() {
-  const navigate = useNavigate();
+const PurchaseSuccess = () => {
   const location = useLocation();
-  const { refetchCredits, credits, loading } = useCredits();
-  const [countdown, setCountdown] = useState(10);
-  
-  // Get purchase details from location state
-  const state = location.state as LocationState | null;
-  const packageName = state?.packageName || 'Pacote de Créditos';
-  const packageCredits = state?.credits || 0;
-  const packagePrice = state?.price || 0;
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useUser();
+  const { refetchCredits, credits } = useCredits();
+
+  // Get the package data from location state
+  const packageData = location.state?.packageData;
+  const paymentMethod = location.state?.paymentMethod;
 
   useEffect(() => {
-    // Refresh credits after successful purchase
-    refetchCredits();
-    
-    // Set up countdown for auto-redirect
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          navigate('/');
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    if (!packageData) {
+      navigate("/purchase-credits");
+      return;
+    }
 
-    return () => clearInterval(timer);
-  }, [refetchCredits, navigate]);
+    // Refetch credits to get updated balance
+    if (user?.id) {
+      refetchCredits();
+    }
+
+    // Show success toast
+    toast({
+      title: "Compra realizada com sucesso!",
+      description: `Você adquiriu ${packageData.credits} créditos.`,
+      variant: "default",
+    });
+  }, [packageData, user?.id, toast, navigate, refetchCredits]);
+
+  if (!packageData) {
+    return null;
+  }
 
   return (
-    <Layout>
-      <div className="container max-w-4xl mx-auto px-4 pt-20 pb-12">
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="mb-4">
-            <CheckCircle2 className="h-20 w-20 text-green-500" />
+    <div className="container mx-auto px-4 py-16 mt-8">
+      <div className="max-w-md mx-auto">
+        <div className="flex flex-col items-center justify-center mb-8">
+          <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+            <Check className="h-10 w-10 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Compra Realizada com Sucesso!</h1>
-          <p className="text-gray-600 max-w-md">
-            Seus créditos foram adicionados à sua conta e já estão disponíveis para uso.
+          <h1 className="text-2xl font-bold text-center">Pagamento Confirmado!</h1>
+          <p className="text-muted-foreground text-center mt-2">
+            Sua compra de créditos foi processada com sucesso.
           </p>
         </div>
 
-        <Card className="mb-8">
+        <Card className="mb-8 border-green-200 shadow-md">
           <CardContent className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Detalhes da Compra</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <Package className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm text-gray-500">Pacote</p>
-                    <p className="font-medium">{packageName}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <PackageCheck className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm text-gray-500">Créditos Adquiridos</p>
-                    <p className="font-medium">{packageCredits} créditos</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm text-gray-500">Valor Pago</p>
-                    <p className="font-medium">R$ {packagePrice.toFixed(2)}</p>
-                  </div>
-                </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center pb-4 border-b">
+                <span className="text-muted-foreground">Pacote</span>
+                <span className="font-medium">{packageData.name}</span>
               </div>
               
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium mb-2">Saldo Atual</h3>
-                {loading ? (
-                  <div className="h-8 w-24 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  <p className="text-2xl font-bold text-primary">{credits} créditos</p>
-                )}
-                <p className="text-sm text-gray-500 mt-2">
-                  Você pode usar seus créditos para publicar anúncios e utilizar outros recursos do marketplace.
-                </p>
+              <div className="flex justify-between items-center pb-4 border-b">
+                <span className="text-muted-foreground">Valor</span>
+                <span className="font-medium">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(packageData.price)}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center pb-4 border-b">
+                <span className="text-muted-foreground">Método</span>
+                <span className="font-medium flex items-center">
+                  <CreditCard className="h-4 w-4 mr-1" />
+                  {paymentMethod || "Cartão de Crédito"}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center pb-4">
+                <span className="text-muted-foreground">Créditos adicionados</span>
+                <span className="font-bold text-primary">{packageData.credits}</span>
+              </div>
+              
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-muted-foreground">Seu saldo atual</span>
+                <span className="font-bold text-lg text-primary">
+                  {credits?.balance || 0} créditos
+                </span>
               </div>
             </div>
           </CardContent>
         </Card>
-        
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button onClick={() => navigate('/')} className="gap-2">
-            <Home className="h-4 w-4" />
-            Ir para a Página Inicial
-          </Button>
-          
-          <Button 
-            onClick={() => navigate('/marketplace')}
-            variant="outline"
-            className="gap-2"
+
+        <div className="flex flex-col gap-3">
+          <Button
+            className="w-full"
+            onClick={() => navigate("/marketplace")}
           >
-            <Package className="h-4 w-4" />
-            Explorar Marketplace
+            <ShoppingBag className="mr-2 h-4 w-4" />
+            Ir para o Marketplace
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate("/credit-history")}
+          >
+            Ver Histórico de Créditos
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
-        
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Redirecionando para a página inicial em {countdown} segundos...
-        </p>
       </div>
-    </Layout>
+    </div>
   );
-}
+};
+
+export default PurchaseSuccess;
