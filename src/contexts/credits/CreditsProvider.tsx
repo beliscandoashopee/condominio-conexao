@@ -15,7 +15,7 @@ import {
 } from "./manualCreditsAPI";
 import { useCreditsUtils } from "./useCreditsUtils";
 import CreditsContext from "./CreditsContext";
-import { useUser } from "../UserContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export const CreditsProvider = ({ children }: { children: React.ReactNode }) => {
   const [credits, setCredits] = useState<UserCredits | null>(null);
@@ -26,7 +26,6 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
   const [error, setError] = useState<string | null>(null);
   
   const { hasEnoughCredits, getCreditCost } = useCreditsUtils(credits, creditCosts);
-  const { user } = useUser();
 
   useEffect(() => {
     // Buscar pacotes de créditos e custos das ações (não dependem do usuário)
@@ -46,6 +45,30 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     loadInitialData();
   }, []);
 
+  // Listener para mudanças na autenticação
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          fetchCredits(session.user.id);
+        } else {
+          setCredits(null);
+        }
+      }
+    );
+
+    // Verificar sessão atual
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchCredits(session.user.id);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const fetchCredits = async (userId: string) => {
     if (!userId) return;
     
@@ -54,10 +77,10 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     try {
       const userCredits = await fetchUserCredits(userId);
       if (userCredits) {
-        setCredits(userCredits);
+        setCredits({ ...userCredits, user_id: userId });
       } else {
         // Se não retornou créditos mas também não deu erro, provavelmente é um novo usuário
-        setCredits({ balance: 0 });
+        setCredits({ user_id: userId, balance: 0 });
       }
     } catch (err: any) {
       console.error("Erro ao buscar créditos:", err?.message);
@@ -88,9 +111,14 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
   const fetchManualRequests = async () => {
     try {
       const requests = await fetchManualRequests();
-      setManualRequests(requests);
+      if (Array.isArray(requests)) {
+        setManualRequests(requests);
+      } else {
+        setManualRequests([]);
+      }
     } catch (err: any) {
       console.error("Erro ao buscar solicitações de créditos:", err?.message);
+      setManualRequests([]);
     }
   };
 
@@ -99,14 +127,14 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     paymentMethod: string,
     paymentDetails: string
   ): Promise<boolean> => {
-    if (!user?.id) return false;
+    if (!credits?.user_id) return false;
 
     try {
       setIsLoading(true);
       setError(null);
       
       const success = await createManualCreditRequest(
-        user.id,
+        credits.user_id,
         amount,
         paymentMethod,
         paymentDetails

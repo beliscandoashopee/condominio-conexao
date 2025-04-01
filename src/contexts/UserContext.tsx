@@ -1,9 +1,7 @@
-
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "sonner";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useCredits } from "./credits";
 
 type UserProfile = {
   id: string;
@@ -31,7 +29,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { fetchCredits } = useCredits();
 
   useEffect(() => {
     // Configurar o listener de autenticação
@@ -42,10 +39,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Buscar o perfil do usuário quando o estado de autenticação mudar
         if (currentSession?.user) {
-          setTimeout(() => {
-            fetchUserProfile(currentSession.user.id);
-            fetchCredits(currentSession.user.id);
-          }, 0);
+          fetchUserProfile(currentSession.user.id);
         } else {
           setProfile(null);
         }
@@ -59,7 +53,6 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (currentSession?.user) {
         fetchUserProfile(currentSession.user.id);
-        fetchCredits(currentSession.user.id);
       }
       
       setIsLoading(false);
@@ -68,7 +61,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchCredits]);
+  }, []);
 
   const fetchUserProfile = async (userId: string) => {
     try {
