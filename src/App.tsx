@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { UserProvider } from "@/contexts/user/UserContext";
+import { UserProvider } from "./contexts/user/UserContext";
 import { CreditsProvider } from "@/contexts/credits/CreditsProvider";
 import { CheckoutProvider } from "./contexts/checkout/CheckoutProvider";
 import { CheckoutSettingsProvider } from "@/contexts/checkout/CheckoutSettingsContext";
