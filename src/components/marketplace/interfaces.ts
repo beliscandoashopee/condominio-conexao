@@ -13,7 +13,7 @@ export interface Advertisement {
   userId: string;
   images: string[];  // Required to match mockData.ts
   views: number;     // Changed from optional to required to match mockData.ts
-  isAvailable?: boolean;
+  isAvailable: boolean; // Changed from optional to required to match mockData.ts
 }
 
 export interface MarketplaceHeaderProps {

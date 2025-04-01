@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useUser } from "@/contexts/user/UserContext"; // Updated path to match App.tsx
 import { supabase } from "@/integrations/supabase/client";
-import { useCredits } from "@/contexts/credits";
+import { useCredits } from "@/contexts/credits"; // Fixed import to use the index.ts barrel file
 import { CreditPackage, CreditCost } from "@/contexts/credits/types";
 
 const Admin = () => {
