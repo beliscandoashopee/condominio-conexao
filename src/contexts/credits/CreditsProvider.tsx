@@ -1,12 +1,10 @@
-
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useUser } from "@/contexts/user/UserContext";
 import { ManualCreditRequest, CreditPackage, CreditCost, UserCredits, CreditsContextType } from "./types";
 import { fetchUserCredits, fetchAllCreditPackages as fetchPackages, fetchAllCreditCosts as fetchCosts, purchaseUserCredits, spendUserCredits } from "./creditsAPI";
 import { fetchManualRequests as fetchRequests, createManualCreditRequest, updateManualRequestStatus, addCreditsToUser } from "./manualCreditsAPI";
 import { useCreditsUtils } from "./useCreditsUtils";
-
-const CreditsContext = createContext<CreditsContextType | undefined>(undefined);
+import CreditsContext from "./CreditsContext";
 
 export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useUser();
@@ -135,22 +133,17 @@ export const CreditsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const approveManualRequest = async (requestId: string) => {
     setLoading(true);
     try {
-      // First get the request details
       const request = manualRequests.find(req => req.id === requestId);
       if (!request) {
         throw new Error("Request not found");
       }
       
-      // Update the status
       await updateManualRequestStatus(requestId, "approved");
       
-      // Add credits to the user
       await addCreditsToUser(request.user_id, request.amount);
       
-      // Refresh the requests list
       await fetchManualRequests();
       
-      // If the approved request is for the current user, refresh credits
       if (user?.id === request.user_id) {
         await fetchCredits(user.id);
       }
