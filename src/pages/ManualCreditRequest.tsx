@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 export default function ManualCreditRequest() {
-  const { requestManualCredits, isLoading } = useCredits();
+  const { requestManualCredits, loading } = useCredits();
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentDetails, setPaymentDetails] = useState('');
@@ -83,8 +83,8 @@ export default function ManualCreditRequest() {
           />
         </div>
 
-        <Button type="submit" disabled={isLoading} className="w-full">
-          {isLoading ? 'Enviando...' : 'Enviar Solicitação'}
+        <Button type="submit" disabled={loading} className="w-full">
+          {loading ? 'Enviando...' : 'Enviar Solicitação'}
         </Button>
       </form>
 
@@ -98,4 +98,4 @@ export default function ManualCreditRequest() {
       </div>
     </div>
   );
-} 
+}

@@ -28,13 +28,13 @@ export const fetchUserCredits = async (userId: string): Promise<UserCredits | nu
           throw insertError;
         }
 
-        return { balance: 0 };
+        return { user_id: userId, balance: 0 };
       } else {
         throw error;
       }
     }
 
-    return data ? { balance: data.balance } : null;
+    return data ? { user_id: userId, balance: data.balance } : null;
   } catch (error: any) {
     console.error("Erro ao buscar créditos do usuário:", error.message);
     throw error; // Let the caller handle the toast

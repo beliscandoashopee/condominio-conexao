@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2, History } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
-import { useCredits } from "@/contexts/credits";
+import { useCredits } from "@/contexts/credits/CreditsContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -33,7 +33,7 @@ const CreditsDialog: React.FC<CreditsDialogProps> = ({
   defaultTab = "buy"
 }) => {
   const { user } = useUser();
-  const { credits, creditPackages, creditCosts, isLoading, error } = useCredits();
+  const { credits, creditPackages, creditCosts, loading, error } = useCredits();
   const [selectedTab, setSelectedTab] = React.useState(defaultTab);
 
   return (

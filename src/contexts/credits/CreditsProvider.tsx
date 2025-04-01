@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { UserCredits, CreditPackage, CreditCost, ManualCreditRequest } from "./types";
 import { 
@@ -77,7 +78,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     try {
       const userCredits = await fetchUserCredits(userId);
       if (userCredits) {
-        setCredits({ ...userCredits, user_id: userId });
+        setCredits(userCredits);
       } else {
         // Se não retornou créditos mas também não deu erro, provavelmente é um novo usuário
         setCredits({ user_id: userId, balance: 0 });
@@ -108,7 +109,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     }
   };
 
-  const fetchManualRequests = async () => {
+  const fetchManualRequestsHandler = async () => {
     try {
       const requests = await fetchManualRequests();
       if (Array.isArray(requests)) {
@@ -141,7 +142,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       );
 
       if (success) {
-        await fetchManualRequests();
+        await fetchManualRequestsHandler();
       }
 
       return success;
@@ -179,7 +180,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
 
       // Atualizar os dados
       await Promise.all([
-        fetchManualRequests(),
+        fetchManualRequestsHandler(),
         fetchCredits(request.user_id)
       ]);
 
@@ -200,7 +201,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
 
       const success = await updateManualRequestStatus(requestId, 'rejected');
       if (success) {
-        await fetchManualRequests();
+        await fetchManualRequestsHandler();
       }
 
       return success;
@@ -304,7 +305,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
         fetchCredits, 
         fetchCreditPackages, 
         fetchCreditCosts,
-        fetchManualRequests,
+        fetchManualRequests: fetchManualRequestsHandler,
         purchaseCredits,
         requestManualCredits,
         approveManualRequest,

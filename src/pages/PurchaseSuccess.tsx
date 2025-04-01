@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { useUser } from "@/contexts/UserContext";
-import { useCredits } from "@/contexts/credits";
+import { useCredits } from "@/contexts/credits/CreditsContext";
 import { toast } from "sonner";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
@@ -13,7 +13,7 @@ const PurchaseSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useUser();
-  const { fetchCredits, credits, isLoading, error } = useCredits();
+  const { fetchCredits, credits, loading, error } = useCredits();
   const [retryCount, setRetryCount] = useState(0);
   const [showRetryButton, setShowRetryButton] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(true);
