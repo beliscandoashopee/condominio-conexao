@@ -21,7 +21,7 @@ export const useUser = () => {
   return context;
 };
 
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -85,4 +85,6 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </UserContext.Provider>
   );
-}; 
+};
+
+export { UserProvider }; 
