@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { useUser } from "@/contexts/user/UserContext"; // Updated path to match App.tsx
+import { useUser } from "@/contexts/user/UserContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useCredits } from "@/contexts/credits"; // Fixed import to use the index.ts barrel file
+import { useCredits } from "@/contexts/credits";
 import { CreditPackage, CreditCost } from "@/contexts/credits/types";
+import AdminMenu from "@/components/AdminMenu";
 
 const Admin = () => {
   const navigate = useNavigate();
