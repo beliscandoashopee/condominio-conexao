@@ -1,16 +1,14 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ShoppingBag, MessageSquare, User, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Navbar from "@/components/Navbar";
 import { 
   advertisements, 
   categories, 
   users, 
   formatRelativeDate 
 } from "@/data/mockData";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/user/UserContext";
 
 const Index = () => {
   const { user } = useUser();

@@ -17,26 +17,41 @@ export interface Advertisement {
 }
 
 export interface MarketplaceHeaderProps {
-  onNewAdClick: () => void;
+  onCreateAdClick: () => void;
+  onCreditDialogOpen: () => void;
 }
 
 export interface SearchBarProps {
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  sortOption: string;
+  setSortOption: (option: string) => void;
   onOpenFilters: () => void;
 }
 
 export interface NoResultsFoundProps {
-  searchTerm: string;
+  onClearFilters: () => void;
 }
 
 export interface FilterSheetProps {
-  open: boolean;
+  isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  selectedCategory: string | null;
+  setSelectedCategory: (category: string | null) => void;
+  priceRange: [number | null, number | null];
+  setPriceRange: (range: [number | null, number | null]) => void;
+  sortOption: string;
+  setSortOption: (option: string) => void;
+  onClearFilters: () => void;
 }
 
 export interface CreateAdDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onCreditDialogOpen: () => void;
+}
+
+export interface CreditsDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }

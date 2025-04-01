@@ -4,14 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Plus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/user/UserContext";
 import { useCredits } from "@/contexts/credits";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-interface MarketplaceHeaderProps {
-  onCreateAdClick: () => void;
-  onCreditDialogOpen: () => void;
-}
+import { MarketplaceHeaderProps } from "./interfaces";
 
 const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
   onCreateAdClick,

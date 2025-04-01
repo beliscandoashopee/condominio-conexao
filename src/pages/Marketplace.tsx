@@ -1,5 +1,5 @@
+
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useUser } from "@/contexts/user/UserContext";
 import { useCredits } from "@/contexts/credits";
 import MarketplaceHeader from "@/components/marketplace/MarketplaceHeader";
@@ -9,9 +9,10 @@ import FilterSheet from "@/components/marketplace/FilterSheet";
 import CreateAdDialog from "@/components/marketplace/CreateAdDialog";
 import { CreditsDialog } from "@/components/marketplace/CreditsDialog";
 import NoResultsFound from "@/components/marketplace/NoResultsFound";
+import { Advertisement } from "@/components/marketplace/interfaces";
 
 const Marketplace = () => {
-  const [ads, setAds] = useState([
+  const [ads, setAds] = useState<Advertisement[]>([
     {
       id: "1",
       title: "Guitarra Fender Stratocaster",
@@ -22,6 +23,9 @@ const Marketplace = () => {
       createdAt: "2024-08-01T10:00:00",
       image: "https://picsum.photos/400/300",
       userId: "user123",
+      images: ["https://picsum.photos/400/300"],
+      views: 0,
+      isAvailable: true
     },
     {
       id: "2",
@@ -33,6 +37,9 @@ const Marketplace = () => {
       createdAt: "2024-08-05T15:30:00",
       image: "https://picsum.photos/400/300",
       userId: "user456",
+      images: ["https://picsum.photos/400/300"],
+      views: 0,
+      isAvailable: true
     },
     {
       id: "3",
@@ -44,17 +51,17 @@ const Marketplace = () => {
       createdAt: "2024-08-10T08:45:00",
       image: "https://picsum.photos/400/300",
       userId: "user789",
+      images: ["https://picsum.photos/400/300"],
+      views: 0,
+      isAvailable: true
     },
   ]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredAds, setFilteredAds] = useState(ads);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    category: "",
-    minPrice: "",
-    maxPrice: "",
-    location: "",
-  });
+  const [sortOption, setSortOption] = useState("recent");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [priceRange, setPriceRange] = useState<[number | null, number | null]>([null, null]);
 
   const { user } = useUser();
   const { fetchCredits } = useCredits();
@@ -67,7 +74,7 @@ const Marketplace = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [ads, searchTerm, filters]);
+  }, [ads, searchTerm, selectedCategory, priceRange, sortOption]);
 
   const applyFilters = () => {
     let newFilteredAds = [...ads];
@@ -78,33 +85,44 @@ const Marketplace = () => {
       );
     }
 
-    if (filters.category) {
+    if (selectedCategory) {
       newFilteredAds = newFilteredAds.filter(
-        (ad) => ad.category === filters.category
+        (ad) => ad.category === selectedCategory
       );
     }
 
-    if (filters.minPrice) {
-      const minPrice = parseFloat(filters.minPrice);
-      newFilteredAds = newFilteredAds.filter((ad) => ad.price >= minPrice);
+    if (priceRange[0] !== null) {
+      newFilteredAds = newFilteredAds.filter((ad) => ad.price >= (priceRange[0] || 0));
     }
 
-    if (filters.maxPrice) {
-      const maxPrice = parseFloat(filters.maxPrice);
-      newFilteredAds = newFilteredAds.filter((ad) => ad.price <= maxPrice);
+    if (priceRange[1] !== null) {
+      newFilteredAds = newFilteredAds.filter((ad) => ad.price <= (priceRange[1] || Infinity));
     }
 
-    if (filters.location) {
-      newFilteredAds = newFilteredAds.filter((ad) =>
-        ad.location.toLowerCase().includes(filters.location.toLowerCase())
-      );
+    // Apply sorting
+    switch (sortOption) {
+      case 'recent':
+        newFilteredAds.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'priceAsc':
+        newFilteredAds.sort((a, b) => a.price - b.price);
+        break;
+      case 'priceDesc':
+        newFilteredAds.sort((a, b) => b.price - a.price);
+        break;
+      case 'popular':
+        newFilteredAds.sort((a, b) => (b.views || 0) - (a.views || 0));
+        break;
     }
 
     setFilteredAds(newFilteredAds);
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory(null);
+    setPriceRange([null, null]);
+    setSortOption("recent");
   };
 
   const [showCreateAd, setShowCreateAd] = useState(false);
@@ -112,12 +130,17 @@ const Marketplace = () => {
   
   return (
     <div className="container mx-auto px-4 pt-24 pb-16">
-      <MarketplaceHeader onNewAdClick={() => setShowCreateAd(true)} />
+      <MarketplaceHeader 
+        onCreateAdClick={() => setShowCreateAd(true)}
+        onCreditDialogOpen={() => setShowCreditsDialog(true)}
+      />
       
       <div className="my-6">
         <SearchBar
-          value={searchTerm}
-          onChange={handleSearchChange}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          sortOption={sortOption}
+          setSortOption={setSortOption}
           onOpenFilters={() => setShowFilters(true)}
         />
       </div>
@@ -125,12 +148,31 @@ const Marketplace = () => {
       {filteredAds.length > 0 ? (
         <AdList ads={filteredAds} />
       ) : (
-        <NoResultsFound searchTerm={searchTerm} />
+        <NoResultsFound onClearFilters={clearFilters} />
       )}
 
-      <CreateAdDialog open={showCreateAd} onOpenChange={setShowCreateAd} />
-      <CreditsDialog open={showCreditsDialog} onOpenChange={setShowCreditsDialog} />
-      <FilterSheet open={showFilters} onOpenChange={setShowFilters} />
+      <CreateAdDialog 
+        isOpen={showCreateAd} 
+        onOpenChange={setShowCreateAd}
+        onCreditDialogOpen={() => setShowCreditsDialog(true)}
+      />
+      
+      <CreditsDialog 
+        open={showCreditsDialog} 
+        onOpenChange={setShowCreditsDialog} 
+      />
+      
+      <FilterSheet 
+        isOpen={showFilters} 
+        onOpenChange={setShowFilters}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        priceRange={priceRange}
+        setPriceRange={setPriceRange}
+        sortOption={sortOption}
+        setSortOption={setSortOption}
+        onClearFilters={clearFilters}
+      />
     </div>
   );
 };
