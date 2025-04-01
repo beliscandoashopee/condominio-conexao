@@ -1,13 +1,13 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CreditCard, ShoppingCart, ChevronLeft, AlertCircle } from "lucide-react";
+import { Loader2, CreditCard, ShoppingCart, ChevronLeft, AlertCircle, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { useUser } from "@/contexts/UserContext";
 import { useCredits } from "@/contexts/credits";
+import { useCheckout } from "@/contexts/checkout/CheckoutContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -15,6 +15,7 @@ const PurchaseCredits = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { creditPackages, fetchCredits } = useCredits();
+  const { settings } = useCheckout();
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -134,6 +135,11 @@ const PurchaseCredits = () => {
     handleSuccessfulPurchase();
   }, [user, fetchCredits]);
 
+  // Verifica se o pagamento com cartão está habilitado
+  const isCardPaymentEnabled = settings.find(s => s.type === 'credit_card')?.enabled;
+  // Verifica se o pagamento manual está habilitado
+  const isManualPaymentEnabled = settings.find(s => s.type === 'manual')?.enabled;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -173,49 +179,84 @@ const PurchaseCredits = () => {
             </Alert>
           )}
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-            {creditPackages.map((pkg) => (
-              <Card key={pkg.id} className={`overflow-hidden transition-all duration-200 ${isLoading === pkg.id ? 'opacity-70' : 'hover:shadow-md'}`}>
-                <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
-                  <CardTitle>{pkg.name}</CardTitle>
-                  <CardDescription>
-                    Pacote com {pkg.credits} créditos
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Quantidade</p>
-                      <p className="text-2xl font-bold">{pkg.credits} <span className="text-sm font-normal text-muted-foreground">créditos</span></p>
+          {isCardPaymentEnabled && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+              {creditPackages.map((pkg) => (
+                <Card key={pkg.id} className={`overflow-hidden transition-all duration-200 ${isLoading === pkg.id ? 'opacity-70' : 'hover:shadow-md'}`}>
+                  <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
+                    <CardTitle>{pkg.name}</CardTitle>
+                    <CardDescription>
+                      Pacote com {pkg.credits} créditos
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Quantidade</p>
+                        <p className="text-2xl font-bold">{pkg.credits} <span className="text-sm font-normal text-muted-foreground">créditos</span></p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Preço</p>
+                        <p className="text-2xl font-bold">R$ {pkg.price.toFixed(2)}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Preço</p>
-                      <p className="text-2xl font-bold">R$ {pkg.price.toFixed(2)}</p>
-                    </div>
+                  </CardContent>
+                  <CardFooter className="border-t bg-muted/30 pt-4">
+                    <Button 
+                      className="w-full"
+                      onClick={() => handlePurchase(pkg.id)}
+                      disabled={isLoading !== null}
+                    >
+                      {isLoading === pkg.id ? (
+                        <>
+                          <Loader2 size={18} className="mr-2 animate-spin" />
+                          Processando...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard size={18} className="mr-2" />
+                          Comprar com Cartão
+                        </>
+                      )}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Seção de Compra Manual */}
+          {isManualPaymentEnabled && (
+            <div className="mt-12 bg-muted/50 rounded-lg p-6 max-w-3xl mx-auto">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold">Compra Manual de Créditos</h2>
+                  <p className="text-muted-foreground mt-1">
+                    Prefere comprar créditos através de outros métodos de pagamento?
+                  </p>
+                </div>
+                <Button
+                  onClick={() => navigate('/manual-credit-request')}
+                  className="flex items-center gap-2"
+                >
+                  <Wallet size={18} />
+                  Solicitar Créditos Manualmente
+                </Button>
+              </div>
+              <div className="space-y-4">
+                <div className="flex gap-3">
+                  <Wallet className="h-6 w-6 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-medium">Métodos de Pagamento Aceitos</h3>
+                    <p className="text-muted-foreground">
+                      Aceitamos PIX, transferência bancária e pagamento em dinheiro. 
+                      Após o pagamento, um administrador irá aprovar sua solicitação.
+                    </p>
                   </div>
-                </CardContent>
-                <CardFooter className="border-t bg-muted/30 pt-4">
-                  <Button 
-                    className="w-full"
-                    onClick={() => handlePurchase(pkg.id)}
-                    disabled={isLoading !== null}
-                  >
-                    {isLoading === pkg.id ? (
-                      <>
-                        <Loader2 size={18} className="mr-2 animate-spin" />
-                        Processando...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard size={18} className="mr-2" />
-                        Comprar com Cartão
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="mt-12 bg-muted/50 rounded-lg p-6 max-w-3xl mx-auto">
             <h2 className="text-xl font-semibold mb-4">Informações sobre créditos</h2>

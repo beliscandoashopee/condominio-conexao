@@ -7,7 +7,8 @@ import {
   Settings, 
   ShoppingCart, 
   CreditCard,
-  Wallet
+  Wallet,
+  CreditCardIcon
 } from "lucide-react";
 
 const AdminMenu = () => {
@@ -38,6 +39,11 @@ const AdminMenu = () => {
       title: "Solicitações de Créditos",
       href: "/admin/manual-credits",
       icon: Wallet
+    },
+    {
+      title: "Configurações de Checkout",
+      href: "/admin/checkout-settings",
+      icon: CreditCardIcon
     },
     {
       title: "Configurações",
