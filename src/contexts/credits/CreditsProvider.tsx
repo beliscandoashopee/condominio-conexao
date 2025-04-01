@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { UserCredits, CreditPackage, CreditCost } from "./types";
+import { UserCredits, CreditPackage, CreditCost, ManualCreditRequest } from "./types";
 import { 
   fetchUserCredits,
   fetchAllCreditPackages, 
@@ -8,17 +7,26 @@ import {
   purchaseUserCredits,
   spendUserCredits
 } from "./creditsAPI";
+import {
+  createManualCreditRequest,
+  fetchManualRequests,
+  updateManualRequestStatus,
+  addCreditsToUser
+} from "./manualCreditsAPI";
 import { useCreditsUtils } from "./useCreditsUtils";
 import CreditsContext from "./CreditsContext";
+import { useUser } from "../UserContext";
 
 export const CreditsProvider = ({ children }: { children: React.ReactNode }) => {
   const [credits, setCredits] = useState<UserCredits | null>(null);
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [creditCosts, setCreditCosts] = useState<CreditCost[]>([]);
+  const [manualRequests, setManualRequests] = useState<ManualCreditRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const { hasEnoughCredits, getCreditCost } = useCreditsUtils(credits, creditCosts);
+  const { user } = useUser();
 
   useEffect(() => {
     // Buscar pacotes de créditos e custos das ações (não dependem do usuário)
@@ -27,7 +35,8 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       try {
         await Promise.all([
           fetchCreditPackages(),
-          fetchCreditCosts()
+          fetchCreditCosts(),
+          fetchManualRequests()
         ]);
       } finally {
         setIsLoading(false);
@@ -73,6 +82,106 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       setCreditCosts(costs);
     } catch (err: any) {
       console.error("Erro ao buscar custos das ações:", err?.message);
+    }
+  };
+
+  const fetchManualRequests = async () => {
+    try {
+      const requests = await fetchManualRequests();
+      setManualRequests(requests);
+    } catch (err: any) {
+      console.error("Erro ao buscar solicitações de créditos:", err?.message);
+    }
+  };
+
+  const requestManualCredits = async (
+    amount: number,
+    paymentMethod: string,
+    paymentDetails: string
+  ): Promise<boolean> => {
+    if (!user?.id) return false;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const success = await createManualCreditRequest(
+        user.id,
+        amount,
+        paymentMethod,
+        paymentDetails
+      );
+
+      if (success) {
+        await fetchManualRequests();
+      }
+
+      return success;
+    } catch (err: any) {
+      console.error("Erro ao solicitar créditos:", err?.message);
+      setError("Não foi possível criar a solicitação de créditos.");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const approveManualRequest = async (requestId: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Buscar a solicitação
+      const request = manualRequests.find(r => r.id === requestId);
+      if (!request) {
+        throw new Error("Solicitação não encontrada.");
+      }
+
+      // Atualizar o status da solicitação
+      const statusUpdated = await updateManualRequestStatus(requestId, 'approved');
+      if (!statusUpdated) {
+        throw new Error("Não foi possível atualizar o status da solicitação.");
+      }
+
+      // Adicionar os créditos ao usuário
+      const creditsAdded = await addCreditsToUser(request.user_id, request.amount);
+      if (!creditsAdded) {
+        throw new Error("Não foi possível adicionar os créditos ao usuário.");
+      }
+
+      // Atualizar os dados
+      await Promise.all([
+        fetchManualRequests(),
+        fetchCredits(request.user_id)
+      ]);
+
+      return true;
+    } catch (err: any) {
+      console.error("Erro ao aprovar solicitação:", err?.message);
+      setError("Não foi possível aprovar a solicitação.");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const rejectManualRequest = async (requestId: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const success = await updateManualRequestStatus(requestId, 'rejected');
+      if (success) {
+        await fetchManualRequests();
+      }
+
+      return success;
+    } catch (err: any) {
+      console.error("Erro ao rejeitar solicitação:", err?.message);
+      setError("Não foi possível rejeitar a solicitação.");
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -162,11 +271,16 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       value={{ 
         credits, 
         creditPackages, 
-        creditCosts, 
+        creditCosts,
+        manualRequests,
         fetchCredits, 
         fetchCreditPackages, 
-        fetchCreditCosts, 
-        purchaseCredits, 
+        fetchCreditCosts,
+        fetchManualRequests,
+        purchaseCredits,
+        requestManualCredits,
+        approveManualRequest,
+        rejectManualRequest,
         spendCredits, 
         hasEnoughCredits, 
         getCreditCost,
