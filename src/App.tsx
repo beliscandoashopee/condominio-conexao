@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { UserProvider } from "./contexts/UserContext";
 import { CreditsProvider } from "./contexts/credits";
+import { Layout } from "./components/Layout";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -30,19 +30,21 @@ const App = () => {
             <TooltipProvider>
               <Toaster />
               <Sonner />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/marketplace" element={<Marketplace />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/ad/:id" element={<AdDetails />} />
-                <Route path="/messages" element={<Messages />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/purchase-credits" element={<PurchaseCredits />} />
-                <Route path="/purchase-success" element={<PurchaseSuccess />} />
-                <Route path="/credit-history" element={<CreditHistory />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/marketplace" element={<Marketplace />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/ad/:id" element={<AdDetails />} />
+                  <Route path="/messages" element={<Messages />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/purchase-credits" element={<PurchaseCredits />} />
+                  <Route path="/purchase-success" element={<PurchaseSuccess />} />
+                  <Route path="/credit-history" element={<CreditHistory />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Layout>
             </TooltipProvider>
           </UserProvider>
         </CreditsProvider>
