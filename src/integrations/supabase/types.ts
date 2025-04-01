@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
+export interface Database {
   public: {
     Tables: {
       credit_costs: {
@@ -14,7 +14,7 @@ export type Database = {
           action_type: string
           cost: number
           created_at: string
-          description: string | null
+          description: string
           id: string
           updated_at: string
         }
@@ -22,7 +22,7 @@ export type Database = {
           action_type: string
           cost: number
           created_at?: string
-          description?: string | null
+          description: string
           id?: string
           updated_at?: string
         }
@@ -30,7 +30,7 @@ export type Database = {
           action_type?: string
           cost?: number
           created_at?: string
-          description?: string | null
+          description?: string
           id?: string
           updated_at?: string
         }
@@ -47,7 +47,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          active?: boolean
+          active: boolean
           created_at?: string
           credits: number
           id?: string
@@ -98,47 +98,93 @@ export type Database = {
           {
             foreignKeyName: "credit_transactions_package_id_fkey"
             columns: ["package_id"]
-            isOneToOne: false
             referencedRelation: "credit_packages"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "credit_transactions_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      manual_credit_requests: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          status: 'pending' | 'approved' | 'rejected'
+          created_at: string
+          updated_at: string
+          payment_method: string
+          payment_details: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount: number
+          status?: 'pending' | 'approved' | 'rejected'
+          created_at?: string
+          updated_at?: string
+          payment_method: string
+          payment_details: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount?: number
+          status?: 'pending' | 'approved' | 'rejected'
+          created_at?: string
+          updated_at?: string
+          payment_method?: string
+          payment_details?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_credit_requests_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
         ]
       }
       profiles: {
         Row: {
-          apartment: string | null
-          avatar: string | null
-          block: string | null
+          avatar_url: string | null
           created_at: string
-          email: string | null
+          email: string
+          full_name: string | null
           id: string
-          name: string | null
-          role: Database["public"]["Enums"]["user_role"]
+          role: string
           updated_at: string
         }
         Insert: {
-          apartment?: string | null
-          avatar?: string | null
-          block?: string | null
+          avatar_url?: string | null
           created_at?: string
-          email?: string | null
+          email: string
+          full_name?: string | null
           id: string
-          name?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
+          role?: string
           updated_at?: string
         }
         Update: {
-          apartment?: string | null
-          avatar?: string | null
-          block?: string | null
+          avatar_url?: string | null
           created_at?: string
-          email?: string | null
+          email?: string
+          full_name?: string | null
           id?: string
-          name?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
+          role?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       user_credits: {
         Row: {
@@ -149,7 +195,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          balance?: number
+          balance: number
           created_at?: string
           id?: string
           updated_at?: string
@@ -162,23 +208,24 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_credits_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      update_user_credits: {
-        Args: {
-          p_user_id: string
-          p_amount: number
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      user_role: "user" | "admin"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never

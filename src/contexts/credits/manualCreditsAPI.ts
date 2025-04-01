@@ -1,5 +1,8 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { ManualCreditRequest } from './types';
+import { Database } from '@/integrations/supabase/types';
+
+type ManualCreditRequestRow = Database['public']['Tables']['manual_credit_requests']['Row'];
 
 export const createManualCreditRequest = async (
   userId: string,
@@ -28,7 +31,7 @@ export const createManualCreditRequest = async (
   }
 };
 
-export const fetchManualRequests = async (): Promise<ManualCreditRequest[]> => {
+export const fetchManualRequests = async (): Promise<ManualCreditRequestRow[]> => {
   try {
     const { data, error } = await supabase
       .from('manual_credit_requests')
