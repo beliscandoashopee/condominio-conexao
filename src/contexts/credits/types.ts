@@ -1,3 +1,4 @@
+
 export type CreditPackage = {
   id: string;
   name: string;
@@ -45,6 +46,6 @@ export type CreditsContextType = {
   spendCredits: (actionType: string, userId: string, amount?: number) => Promise<boolean>;
   hasEnoughCredits: (actionType: string) => boolean;
   getCreditCost: (actionType: string) => number;
-  isLoading: boolean;
+  loading: boolean;
   error: string | null;
 };

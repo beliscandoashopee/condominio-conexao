@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/user/UserContext";
-import { useCredits } from "@/contexts/credits/CreditsProvider";
+import { useCredits } from "@/contexts/credits/CreditsContext";
 import { useCheckoutSettings } from "@/hooks/useCheckoutSettings";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ const PurchaseCredits = () => {
 
     setProcessing(true);
     try {
-      const success = await purchaseCredits(packageId);
+      const success = await purchaseCredits(packageId, user.id);
       if (success) {
         toast.success("Créditos comprados com sucesso!");
         navigate("/purchase-success");

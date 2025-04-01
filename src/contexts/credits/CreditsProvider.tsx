@@ -22,7 +22,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
   const [creditPackages, setCreditPackages] = useState<CreditPackage[]>([]);
   const [creditCosts, setCreditCosts] = useState<CreditCost[]>([]);
   const [manualRequests, setManualRequests] = useState<ManualCreditRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const { hasEnoughCredits, getCreditCost } = useCreditsUtils(credits, creditCosts);
@@ -30,7 +30,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
   useEffect(() => {
     // Buscar pacotes de créditos e custos das ações (não dependem do usuário)
     const loadInitialData = async () => {
-      setIsLoading(true);
+      setLoading(true);
       try {
         await Promise.all([
           fetchCreditPackages(),
@@ -38,7 +38,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
           fetchManualRequests()
         ]);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
     
@@ -72,7 +72,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
   const fetchCredits = async (userId: string) => {
     if (!userId) return;
     
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
     try {
       const userCredits = await fetchUserCredits(userId);
@@ -86,7 +86,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       console.error("Erro ao buscar créditos:", err?.message);
       setError("Não foi possível carregar seus créditos.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -130,7 +130,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     if (!credits?.user_id) return false;
 
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
       
       const success = await createManualCreditRequest(
@@ -150,13 +150,13 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       setError("Não foi possível criar a solicitação de créditos.");
       return false;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const approveManualRequest = async (requestId: string): Promise<boolean> => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
 
       // Buscar a solicitação
@@ -189,13 +189,13 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       setError("Não foi possível aprovar a solicitação.");
       return false;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const rejectManualRequest = async (requestId: string): Promise<boolean> => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
 
       const success = await updateManualRequestStatus(requestId, 'rejected');
@@ -209,7 +209,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       setError("Não foi possível rejeitar a solicitação.");
       return false;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -219,7 +219,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     }
 
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
       
       // Buscar o pacote selecionado
@@ -242,7 +242,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       setError("Não foi possível completar a compra de créditos.");
       return false;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -259,7 +259,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
     }
 
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
       
       // Buscar o custo da ação
@@ -290,7 +290,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
       setError("Não foi possível completar a operação.");
       return false;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -312,7 +312,7 @@ export const CreditsProvider = ({ children }: { children: React.ReactNode }) => 
         spendCredits, 
         hasEnoughCredits, 
         getCreditCost,
-        isLoading,
+        loading,
         error
       }}
     >
