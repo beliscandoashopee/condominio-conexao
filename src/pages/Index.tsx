@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ShoppingBag, MessageSquare, User, Star } from "lucide-react";
@@ -9,6 +10,7 @@ import {
   formatRelativeDate 
 } from "@/data/mockData";
 import { useUser } from "@/contexts/user/UserContext";
+import Navbar from "@/components/Navbar";
 
 const Index = () => {
   const { user } = useUser();

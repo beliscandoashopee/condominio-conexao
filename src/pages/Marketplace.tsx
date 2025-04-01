@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useUser } from "@/contexts/user/UserContext";
 import { useCredits } from "@/contexts/credits";
@@ -23,7 +22,7 @@ const Marketplace = () => {
       createdAt: "2024-08-01T10:00:00",
       image: "https://picsum.photos/400/300",
       userId: "user123",
-      images: ["https://picsum.photos/400/300"],
+      images: ["https://picsum.photos/400/300"], // Now required
       views: 0,
       isAvailable: true
     },
@@ -37,7 +36,7 @@ const Marketplace = () => {
       createdAt: "2024-08-05T15:30:00",
       image: "https://picsum.photos/400/300",
       userId: "user456",
-      images: ["https://picsum.photos/400/300"],
+      images: ["https://picsum.photos/400/300"], // Now required
       views: 0,
       isAvailable: true
     },
@@ -51,7 +50,7 @@ const Marketplace = () => {
       createdAt: "2024-08-10T08:45:00",
       image: "https://picsum.photos/400/300",
       userId: "user789",
-      images: ["https://picsum.photos/400/300"],
+      images: ["https://picsum.photos/400/300"], // Now required
       views: 0,
       isAvailable: true
     },

@@ -11,7 +11,7 @@ export interface Advertisement {
   createdAt: string;
   image: string;
   userId: string;
-  images?: string[];
+  images: string[];  // Changed from optional to required to match mockData.ts
   views?: number;
   isAvailable?: boolean;
 }
