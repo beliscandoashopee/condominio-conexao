@@ -37,7 +37,12 @@ export const fetchManualRequests = async (): Promise<ManualCreditRequest[]> => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Ensure the status field conforms to the expected type
+    return (data || []).map(request => ({
+      ...request,
+      status: request.status as "pending" | "approved" | "rejected"
+    }));
   } catch (error) {
     console.error('Erro ao buscar solicitações de créditos:', error);
     return [];

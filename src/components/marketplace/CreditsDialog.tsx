@@ -1,206 +1,111 @@
 
-import React from "react";
-import { Link } from "react-router-dom";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { AlertCircle, Loader2, History } from "lucide-react";
-import { useUser } from "@/contexts/UserContext";
-import { useCredits } from "@/contexts/credits/CreditsContext";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { useCredits } from '@/contexts/credits/CreditsContext';
+import { CreditCard, DollarSign, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface CreditsDialogProps {
-  isOpen: boolean;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultTab?: string;
 }
 
-const CreditsDialog: React.FC<CreditsDialogProps> = ({
-  isOpen,
-  onOpenChange,
-  defaultTab = "buy"
-}) => {
-  const { user } = useUser();
-  const { credits, creditPackages, creditCosts, loading, error } = useCredits();
-  const [selectedTab, setSelectedTab] = React.useState(defaultTab);
+export function CreditsDialog({ open, onOpenChange }: CreditsDialogProps) {
+  const [option, setOption] = useState<'buy' | 'manual' | null>(null);
+  const { credits, loading } = useCredits();
+  const navigate = useNavigate();
+
+  const handleBuyCredits = () => {
+    onOpenChange(false);
+    navigate('/purchase-credits');
+  };
+
+  const handleManualRequest = () => {
+    onOpenChange(false);
+    navigate('/manual-credit-request');
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Créditos</DialogTitle>
+          <DialogTitle>Adquirir Créditos</DialogTitle>
           <DialogDescription>
-            Gerencie seus créditos para anunciar e destacar produtos no marketplace.
+            Escolha como deseja obter mais créditos para usar no marketplace.
           </DialogDescription>
         </DialogHeader>
 
-        {error && (
-          <Alert variant="destructive" className="mt-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error}
-            </AlertDescription>
-          </Alert>
-        )}
+        <div className="space-y-4 py-4">
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-medium">Seu saldo atual:</span>
+            {loading ? (
+              <div className="h-6 w-16 bg-gray-200 animate-pulse rounded"></div>
+            ) : (
+              <span className="text-lg font-bold">{credits} créditos</span>
+            )}
+          </div>
 
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="buy">Comprar créditos</TabsTrigger>
-            <TabsTrigger value="summary">Resumo</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="buy" className="mt-4">
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground mb-2">
-                Escolha um pacote de créditos para continuar utilizando o marketplace:
-              </p>
-
-              <div className="text-center py-4 px-5 border rounded-lg bg-muted/50">
-                <p className="mb-4">
-                  Para uma experiência melhor de compra, acesse nossa página dedicada de créditos.
-                </p>
-                <Button asChild className="w-full">
-                  <Link to="/purchase-credits" onClick={() => onOpenChange(false)}>
-                    Comprar créditos com cartão
-                  </Link>
-                </Button>
-              </div>
-
-              <div className="grid gap-4">
-                {isLoading ? (
-                  <>
-                    <div className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <Skeleton className="h-5 w-20 mb-2" />
-                          <Skeleton className="h-8 w-24" />
-                        </div>
-                        <div className="text-right">
-                          <Skeleton className="h-4 w-12 mb-2 ml-auto" />
-                          <Skeleton className="h-6 w-20 ml-auto" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-9 w-full mt-3" />
-                    </div>
-                    <div className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <Skeleton className="h-5 w-24 mb-2" />
-                          <Skeleton className="h-8 w-28" />
-                        </div>
-                        <div className="text-right">
-                          <Skeleton className="h-4 w-12 mb-2 ml-auto" />
-                          <Skeleton className="h-6 w-20 ml-auto" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-9 w-full mt-3" />
-                    </div>
-                  </>
-                ) : (
-                  creditPackages.slice(0, 2).map((pkg) => (
-                    <div key={pkg.id} className="border rounded-lg p-4 hover:border-primary transition-colors">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-medium">{pkg.name}</h3>
-                          <p className="text-2xl font-bold mt-1">
-                            {pkg.credits} <span className="text-sm font-normal text-muted-foreground">créditos</span>
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">Preço</p>
-                          <p className="text-lg font-semibold">R$ {pkg.price.toFixed(2)}</p>
-                        </div>
-                      </div>
-                      <Button 
-                        asChild
-                        className="w-full mt-3"
-                      >
-                        <Link to="/purchase-credits" onClick={() => onOpenChange(false)}>
-                          Comprar
-                        </Link>
-                      </Button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="summary" className="mt-4">
-            <div className="space-y-4">
-              <div className="bg-secondary/50 rounded-lg p-4">
-                <h3 className="font-medium mb-2">Seu saldo</h3>
-                {isLoading ? (
-                  <Skeleton className="h-10 w-32" />
-                ) : (
-                  <p className="text-3xl font-bold">{credits?.balance || 0} créditos</p>
-                )}
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="font-medium">Custos das ações</h3>
-                <div className="space-y-2">
-                  {isLoading ? (
-                    <>
-                      <div className="flex justify-between text-sm">
-                        <Skeleton className="h-4 w-40" />
-                        <Skeleton className="h-4 w-16" />
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-4 w-16" />
-                      </div>
-                    </>
-                  ) : (
-                    creditCosts.map((cost) => (
-                      <div key={cost.id} className="flex justify-between text-sm">
-                        <span>{cost.description || cost.action_type}</span>
-                        <span className="font-medium">{cost.cost} créditos</span>
-                      </div>
-                    ))
-                  )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div 
+              className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${option === 'buy' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}
+              onClick={() => setOption('buy')}
+            >
+              <div className="flex flex-col items-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <CreditCard className="h-6 w-6 text-primary" />
                 </div>
-              </div>
-              
-              <div className="space-y-3">
-                <Button 
-                  asChild
-                  className="w-full"
-                >
-                  <Link to="/purchase-credits" onClick={() => onOpenChange(false)}>
-                    Comprar mais créditos
-                  </Link>
-                </Button>
-                
-                <Button 
-                  asChild
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Link to="/credit-history" onClick={() => onOpenChange(false)}>
-                    <History className="mr-2 h-4 w-4" />
-                    Ver histórico completo
-                  </Link>
-                </Button>
+                <h3 className="font-medium text-center">Comprar com Cartão</h3>
+                <p className="text-sm text-center text-gray-500">
+                  Adquira créditos rapidamente usando cartão de crédito
+                </p>
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
+
+            <div 
+              className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${option === 'manual' ? 'border-primary bg-primary/5' : 'border-gray-200'}`}
+              onClick={() => setOption('manual')}
+            >
+              <div className="flex flex-col items-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-medium text-center">Solicitação Manual</h3>
+                <p className="text-sm text-center text-gray-500">
+                  Solicite créditos via PIX, transferência ou dinheiro
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {credits <= 0 && (
+            <div className="flex items-center gap-2 p-3 border border-yellow-300 bg-yellow-50 rounded-md">
+              <AlertCircle className="h-5 w-5 text-yellow-500 flex-shrink-0" />
+              <p className="text-sm text-yellow-700">
+                Você não tem créditos suficientes para usar todas as funcionalidades do app.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="sm:justify-between">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          
+          {option === 'buy' && (
+            <Button onClick={handleBuyCredits} disabled={loading}>
+              {loading ? 'Carregando...' : 'Continuar para pagamento'}
+            </Button>
+          )}
+          
+          {option === 'manual' && (
+            <Button onClick={handleManualRequest} disabled={loading}>
+              {loading ? 'Carregando...' : 'Fazer solicitação'}
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-};
-
-export default CreditsDialog;
+}

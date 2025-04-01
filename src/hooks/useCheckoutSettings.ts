@@ -1,8 +1,15 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { Database } from "@/integrations/supabase/types";
 
-type CheckoutSettings = Database["public"]["Tables"]["checkout_settings"]["Row"];
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+// Define a simpler type for checkout settings
+type CheckoutSettings = {
+  id: string;
+  type: string;
+  enabled: boolean | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export const useCheckoutSettings = () => {
   const [settings, setSettings] = useState<CheckoutSettings | null>(null);
@@ -19,7 +26,7 @@ export const useCheckoutSettings = () => {
       if (error) throw error;
 
       if (data) {
-        setSettings(data);
+        setSettings(data as CheckoutSettings);
       }
     } catch (error) {
       console.error("Erro ao buscar configurações:", error);
