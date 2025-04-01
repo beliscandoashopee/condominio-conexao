@@ -9,6 +9,33 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      checkout_settings: {
+        Row: {
+          id: string
+          pix_enabled: boolean
+          credit_card_enabled: boolean
+          manual_enabled: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          pix_enabled?: boolean
+          credit_card_enabled?: boolean
+          manual_enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          pix_enabled?: boolean
+          credit_card_enabled?: boolean
+          manual_enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       credit_costs: {
         Row: {
           action_type: string

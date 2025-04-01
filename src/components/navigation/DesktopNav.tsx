@@ -1,7 +1,6 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
-import { Settings, Plus, LogOut, LogIn } from "lucide-react";
+import { Plus, LogOut, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "./NavLink";
 import { RouteConfig } from "./types";
@@ -31,17 +30,6 @@ export const DesktopNav = ({
           onClick={() => {}}
         />
       ))}
-      
-      {isAdmin && (
-        <NavLink
-          route={{ 
-            name: "Admin", 
-            path: "/admin", 
-            icon: Settings 
-          }}
-          isActive={isActive}
-        />
-      )}
       
       {user ? (
         <>

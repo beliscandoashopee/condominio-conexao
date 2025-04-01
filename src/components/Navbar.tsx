@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { 
@@ -7,31 +6,63 @@ import {
   User, 
   MessageSquare,
   CreditCard,
-  History
+  History,
+  Settings,
+  Receipt,
+  CreditCard as CreditCardIcon
 } from "lucide-react";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/user/UserContext";
 import { Logo } from "./navigation/Logo";
-import { DesktopNav } from "./navigation/DesktopNav";
-import { MobileNav } from "./navigation/MobileNav";
-import { RouteConfig } from "./navigation/types";
+import { DesktopNav } from "@/components/navigation/DesktopNav";
+import { MobileNav } from "@/components/navigation/MobileNav";
+import { RouteConfig } from "@/components/navigation/types";
 
 const routes: RouteConfig[] = [
-  { name: "Início", path: "/", icon: Home },
-  { name: "Marketplace", path: "/marketplace", icon: ShoppingBag },
-  { name: "Mensagens", path: "/messages", icon: MessageSquare, requireAuth: true },
-  { name: "Perfil", path: "/profile", icon: User, requireAuth: true },
-  { name: "Comprar Créditos", path: "/purchase-credits", icon: CreditCard, requireAuth: true },
-  { name: "Histórico de Créditos", path: "/credit-history", icon: History, requireAuth: true }
+  {
+    name: "Início",
+    path: "/",
+    icon: Home,
+  },
+  {
+    name: "Marketplace",
+    path: "/marketplace",
+    icon: ShoppingBag,
+  },
+  {
+    name: "Perfil",
+    path: "/profile",
+    icon: User,
+    isAuth: true,
+  },
+];
+
+const adminRoutes: RouteConfig[] = [
+  {
+    name: "Painel Admin",
+    path: "/admin",
+    icon: Settings,
+    isAdmin: true,
+  },
+  {
+    name: "Config. Checkout",
+    path: "/admin/checkout-settings",
+    icon: CreditCard,
+    isAdmin: true,
+  },
+  {
+    name: "Créditos Manuais",
+    path: "/admin/manual-credits",
+    icon: Receipt,
+    isAdmin: true,
+  },
 ];
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
-  const { user, profile, logout } = useUser();
+  const { user, isAdmin, signOut } = useUser();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-
-  const isAdmin = profile?.role === "admin";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -51,14 +82,15 @@ const Navbar = () => {
   };
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     navigate("/");
     setOpen(false);
   };
 
-  const filteredRoutes = routes.filter(route => 
-    !route.requireAuth || (route.requireAuth && user)
-  );
+  const filteredRoutes = [
+    ...routes.filter((route) => !route.isAuth || user),
+    ...(isAdmin ? adminRoutes : []),
+  ];
 
   return (
     <header
@@ -81,7 +113,6 @@ const Navbar = () => {
           routes={filteredRoutes} 
           isActive={isActive} 
           user={user} 
-          profile={profile} 
           isAdmin={isAdmin} 
           handleLogout={handleLogout} 
           open={open} 
