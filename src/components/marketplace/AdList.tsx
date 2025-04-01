@@ -2,7 +2,7 @@
 import React from "react";
 import AdCard from "@/components/AdCard";
 import NoResultsFound from "./NoResultsFound";
-import { Advertisement } from "@/data/mockData";
+import { Advertisement } from "@/components/marketplace/interfaces";
 
 interface AdListProps {
   ads: Advertisement[];

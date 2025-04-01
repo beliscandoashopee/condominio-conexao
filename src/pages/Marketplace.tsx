@@ -145,7 +145,7 @@ const Marketplace = () => {
       </div>
 
       {filteredAds.length > 0 ? (
-        <AdList ads={filteredAds} />
+        <AdList ads={filteredAds} onClearFilters={clearFilters} />
       ) : (
         <NoResultsFound onClearFilters={clearFilters} />
       )}
