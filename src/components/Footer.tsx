@@ -73,9 +73,14 @@ export function Footer() {
 
         {/* Linha divisória */}
         <div className="mt-8 pt-8 border-t border-gray-800">
-          <p className="text-center text-gray-400">
-            © {new Date().getFullYear()} Condomínio Conexão. Todos os direitos reservados.
-          </p>
+          <div className="text-center space-y-2">
+            <p className="text-gray-400">
+              © {new Date().getFullYear()} Condomínio Conexão. Todos os direitos reservados.
+            </p>
+            <p className="text-gray-500 text-sm">
+              Desenvolvido por Ivan Gualberto - Grife de Sites
+            </p>
+          </div>
         </div>
       </div>
     </footer>
