@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useUser } from "@/contexts/user/UserContext";
 import { ManualCreditRequest, CreditPackage, CreditCost, UserCredits, CreditsContextType } from "./types";
 import { fetchUserCredits, fetchAllCreditPackages as fetchPackages, fetchAllCreditCosts as fetchCosts, purchaseUserCredits, spendUserCredits } from "./creditsAPI";
