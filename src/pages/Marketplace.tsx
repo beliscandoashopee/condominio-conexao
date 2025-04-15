@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Layout } from "@/components/Layout";
 import { useUser } from "@/contexts/user/UserContext";
 import { useCredits } from "@/contexts/credits";
 import MarketplaceHeader from "@/components/marketplace/MarketplaceHeader";
@@ -128,51 +129,53 @@ const Marketplace = () => {
   const [showCreditsDialog, setShowCreditsDialog] = useState(false);
   
   return (
-    <div className="container mx-auto px-4 pt-24 pb-16">
-      <MarketplaceHeader 
-        onCreateAdClick={() => setShowCreateAd(true)}
-        onCreditDialogOpen={() => setShowCreditsDialog(true)}
-      />
-      
-      <div className="my-6">
-        <SearchBar
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
+    <Layout>
+      <div className="container mx-auto px-4 pt-24 pb-16">
+        <MarketplaceHeader 
+          onCreateAdClick={() => setShowCreateAd(true)}
+          onCreditDialogOpen={() => setShowCreditsDialog(true)}
+        />
+        
+        <div className="my-6">
+          <SearchBar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            sortOption={sortOption}
+            setSortOption={setSortOption}
+            onOpenFilters={() => setShowFilters(true)}
+          />
+        </div>
+
+        {filteredAds.length > 0 ? (
+          <AdList ads={filteredAds} onClearFilters={clearFilters} />
+        ) : (
+          <NoResultsFound onClearFilters={clearFilters} />
+        )}
+
+        <CreateAdDialog 
+          isOpen={showCreateAd} 
+          onOpenChange={setShowCreateAd}
+          onCreditDialogOpen={() => setShowCreditsDialog(true)}
+        />
+        
+        <CreditsDialog 
+          open={showCreditsDialog} 
+          onOpenChange={setShowCreditsDialog} 
+        />
+        
+        <FilterSheet 
+          isOpen={showFilters} 
+          onOpenChange={setShowFilters}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          priceRange={priceRange}
+          setPriceRange={setPriceRange}
           sortOption={sortOption}
           setSortOption={setSortOption}
-          onOpenFilters={() => setShowFilters(true)}
+          onClearFilters={clearFilters}
         />
       </div>
-
-      {filteredAds.length > 0 ? (
-        <AdList ads={filteredAds} onClearFilters={clearFilters} />
-      ) : (
-        <NoResultsFound onClearFilters={clearFilters} />
-      )}
-
-      <CreateAdDialog 
-        isOpen={showCreateAd} 
-        onOpenChange={setShowCreateAd}
-        onCreditDialogOpen={() => setShowCreditsDialog(true)}
-      />
-      
-      <CreditsDialog 
-        open={showCreditsDialog} 
-        onOpenChange={setShowCreditsDialog} 
-      />
-      
-      <FilterSheet 
-        isOpen={showFilters} 
-        onOpenChange={setShowFilters}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        priceRange={priceRange}
-        setPriceRange={setPriceRange}
-        sortOption={sortOption}
-        setSortOption={setSortOption}
-        onClearFilters={clearFilters}
-      />
-    </div>
+    </Layout>
   );
 };
 
