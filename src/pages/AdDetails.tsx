@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { 
@@ -29,7 +28,7 @@ import {
   formatRelativeDate,
   getConversationMessages 
 } from "@/data/mockData";
-import { useUser } from "@/contexts/UserContext";
+import { useUser } from "@/contexts/user/UserContext";
 
 const AdDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,12 +38,10 @@ const AdDetails = () => {
   const [liked, setLiked] = useState(false);
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   
-  // Get ad details
   const ad = getAdById(id || "");
   const seller = ad ? getUserById(ad.userId) : undefined;
   const category = ad ? getCategoryById(ad.category) : undefined;
   
-  // Get conversation messages
   const messages = user && seller 
     ? getConversationMessages(user.id, seller.id) 
     : [];
@@ -78,8 +75,6 @@ const AdDetails = () => {
   const handleSendMessage = (message: string) => {
     toast.success("Mensagem enviada com sucesso!");
     
-    // In a real app, we would send the message to the API
-    // For now, we'll just navigate to the messages page
     setTimeout(() => {
       setIsMessageOpen(false);
       navigate("/messages");
@@ -110,9 +105,7 @@ const AdDetails = () => {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Images and Details */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Image Gallery */}
               <div className="glass-card rounded-xl overflow-hidden">
                 <div className="aspect-[4/3] relative">
                   <img
@@ -162,7 +155,6 @@ const AdDetails = () => {
                 )}
               </div>
               
-              {/* Ad Details */}
               <div className="glass-card rounded-xl p-6 space-y-4">
                 <div className="flex items-start justify-between">
                   <div>
@@ -235,7 +227,6 @@ const AdDetails = () => {
               </div>
             </div>
             
-            {/* Right Column - Seller Info */}
             <div className="space-y-6">
               <h2 className="text-xl font-semibold">Informações do vendedor</h2>
               <ProfileCard 
@@ -286,7 +277,6 @@ const AdDetails = () => {
         </div>
       </main>
       
-      {/* Message Sheet */}
       <Sheet open={isMessageOpen} onOpenChange={setIsMessageOpen}>
         <SheetContent side="right" className="w-full sm:max-w-lg p-0">
           <div className="flex flex-col h-full">
