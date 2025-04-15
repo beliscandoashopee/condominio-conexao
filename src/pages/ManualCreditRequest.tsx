@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useCredits } from '@/contexts/credits/CreditsContext';
@@ -42,7 +43,7 @@ export default function ManualCreditRequest() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-24 pb-8">
         <h1 className="text-2xl font-bold mb-6">Solicitar Créditos Manualmente</h1>
         
         <form onSubmit={handleSubmit} className="max-w-md space-y-6">
