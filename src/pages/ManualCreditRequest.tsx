@@ -14,10 +14,11 @@ export default function ManualCreditRequest() {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [paymentDetails, setPaymentDetails] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!amount || !paymentMethod || !paymentDetails) {
       toast.error('Por favor, preencha todos os campos');
       return;
@@ -29,15 +30,24 @@ export default function ManualCreditRequest() {
       return;
     }
 
-    const success = await requestManualCredits(amountNumber, paymentMethod, paymentDetails);
+    setIsSubmitting(true);
     
-    if (success) {
-      toast.success('Solicitação de créditos enviada com sucesso!');
-      setAmount('');
-      setPaymentMethod('');
-      setPaymentDetails('');
-    } else {
-      toast.error('Não foi possível enviar a solicitação de créditos');
+    try {
+      const success = await requestManualCredits(amountNumber, paymentMethod, paymentDetails);
+      
+      if (success) {
+        toast.success('Solicitação de créditos enviada com sucesso!');
+        setAmount('');
+        setPaymentMethod('');
+        setPaymentDetails('');
+      } else {
+        toast.error('Não foi possível enviar a solicitação de créditos');
+      }
+    } catch (error) {
+      toast.error('Erro ao processar sua solicitação');
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -86,8 +96,8 @@ export default function ManualCreditRequest() {
             />
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Enviando...' : 'Enviar Solicitação'}
+          <Button type="submit" disabled={isSubmitting} className="w-full">
+            {isSubmitting ? 'Enviando...' : 'Enviar Solicitação'}
           </Button>
         </form>
 
