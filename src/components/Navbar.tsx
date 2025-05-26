@@ -9,7 +9,8 @@ import {
   History,
   Settings,
   Receipt,
-  CreditCard as CreditCardIcon
+  CreditCard as CreditCardIcon,
+  BookOpen
 } from "lucide-react";
 import { useUser } from "@/contexts/user/UserContext";
 import { Logo } from "./navigation/Logo";
@@ -33,6 +34,11 @@ const routes: RouteConfig[] = [
     path: "/profile",
     icon: User,
     isAuth: true,
+  },
+  {
+    name: "Documentação",
+    path: "/documentacao",
+    icon: BookOpen,
   },
 ];
 

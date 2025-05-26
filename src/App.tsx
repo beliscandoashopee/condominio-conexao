@@ -17,6 +17,7 @@ import Admin from "@/pages/Admin";
 import AdminManualCredits from "@/pages/AdminManualCredits";
 import ManualCreditRequest from "@/pages/ManualCreditRequest";
 import CheckoutSettings from "@/pages/CheckoutSettings";
+import Documentation from "@/pages/Documentation";
 
 import NotFound from "./pages/NotFound";
 import AdDetails from "./pages/AdDetails";
@@ -52,6 +53,7 @@ const App = () => {
                     <Route path="/purchase-credits" element={<PurchaseCredits />} />
                     <Route path="/purchase-success" element={<PurchaseSuccess />} />
                     <Route path="/credit-history" element={<CreditHistory />} />
+                    <Route path="/documentacao" element={<Documentation />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </CheckoutSettingsProvider>
