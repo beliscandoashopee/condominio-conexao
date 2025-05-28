@@ -11,25 +11,25 @@ export type Database = {
     Tables: {
       checkout_settings: {
         Row: {
-          created_at: string
+          created_at: string | null
           enabled: boolean | null
           id: string
-          type: Database["public"]["Enums"]["checkout_type"]
-          updated_at: string
+          type: string
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           enabled?: boolean | null
           id?: string
-          type: Database["public"]["Enums"]["checkout_type"]
-          updated_at?: string
+          type: string
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           enabled?: boolean | null
           id?: string
-          type?: Database["public"]["Enums"]["checkout_type"]
-          updated_at?: string
+          type?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

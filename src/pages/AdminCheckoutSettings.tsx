@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useCheckout } from '@/contexts/checkout/CheckoutContext';
 import { Switch } from '@/components/ui/switch';
@@ -47,37 +48,52 @@ const AdminCheckoutSettings = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {settings.map((setting) => {
-          const info = checkoutTypeInfo[setting.type];
-          const Icon = info.icon;
-
-          return (
-            <Card key={setting.id}>
+        {isLoading ? (
+          [1, 2, 3].map((i) => (
+            <Card key={i}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <Icon className="h-5 w-5 text-primary" />
-                    <CardTitle>{info.title}</CardTitle>
+                    <Skeleton className="h-5 w-5" />
+                    <Skeleton className="h-6 w-32" />
                   </div>
-                  {isLoading ? (
-                    <Skeleton className="h-6 w-10" />
-                  ) : (
+                  <Skeleton className="h-6 w-10" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-4 w-full" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          settings.map((setting) => {
+            const info = checkoutTypeInfo[setting.type];
+            const Icon = info.icon;
+
+            return (
+              <Card key={setting.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Icon className="h-5 w-5 text-primary" />
+                      <CardTitle>{info.title}</CardTitle>
+                    </div>
                     <Switch
                       checked={setting.enabled}
                       onCheckedChange={(checked) => updateSetting(setting.type, checked)}
                     />
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>{info.description}</CardDescription>
-              </CardContent>
-            </Card>
-          );
-        })}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription>{info.description}</CardDescription>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );
 };
 
-export default AdminCheckoutSettings; 
+export default AdminCheckoutSettings;
