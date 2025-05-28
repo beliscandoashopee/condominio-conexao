@@ -92,7 +92,7 @@ export const SystemConfig: React.FC = () => {
                     <Badge 
                       variant="default" 
                       className={
-                        setting.value.includes('Ativ') || setting.value.includes('Permit') || setting.value.includes('Obrig')
+                        String(setting.value).includes('Ativ') || String(setting.value).includes('Permit') || String(setting.value).includes('Obrig')
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }
