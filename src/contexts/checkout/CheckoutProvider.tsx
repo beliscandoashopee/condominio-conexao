@@ -26,7 +26,13 @@ export const CheckoutProvider = ({ children }: CheckoutProviderProps) => {
 
       if (fetchError) throw fetchError;
 
-      setSettings(data || []);
+      // Convert the data to match our CheckoutSetting interface
+      const typedSettings: CheckoutSetting[] = (data || []).map(setting => ({
+        ...setting,
+        type: setting.type as CheckoutType // Cast to CheckoutType since we know the DB constraint ensures valid values
+      }));
+
+      setSettings(typedSettings);
     } catch (err: any) {
       console.error('Error fetching checkout settings:', err);
       setError('Não foi possível carregar as configurações de checkout');
