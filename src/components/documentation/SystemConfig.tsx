@@ -10,10 +10,15 @@ export const SystemConfig: React.FC = () => {
   const { data: checkoutSettings, isLoading } = useQuery({
     queryKey: ['checkout-settings'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('checkout_settings')
         .select('*')
         .order('type');
+      
+      if (error) {
+        console.error('Error fetching checkout settings:', error);
+        return [];
+      }
       return data || [];
     }
   });
@@ -60,6 +65,19 @@ export const SystemConfig: React.FC = () => {
       ]
     }
   ];
+
+  const getPaymentMethodName = (type: string) => {
+    switch (type) {
+      case 'credit_card':
+        return 'Cartão de Crédito';
+      case 'pix':
+        return 'PIX';
+      case 'manual':
+        return 'Pagamento Manual';
+      default:
+        return type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -123,14 +141,14 @@ export const SystemConfig: React.FC = () => {
                 <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
               ))}
             </div>
-          ) : (
+          ) : checkoutSettings && checkoutSettings.length > 0 ? (
             <div className="space-y-3">
-              {checkoutSettings?.map((setting) => (
+              {checkoutSettings.map((setting) => (
                 <div key={setting.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-2">
                     <CreditCard className="h-4 w-4" />
-                    <span className="font-medium capitalize">
-                      {setting.type.replace('_', ' ')}
+                    <span className="font-medium">
+                      {getPaymentMethodName(setting.type)}
                     </span>
                   </div>
                   <Badge 
@@ -141,6 +159,10 @@ export const SystemConfig: React.FC = () => {
                   </Badge>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-muted-foreground">
+              Nenhuma configuração de checkout encontrada
             </div>
           )}
         </CardContent>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { CheckoutContext } from './CheckoutContext';
 import { CheckoutSetting, CheckoutType } from './types';
@@ -13,6 +14,40 @@ export const CheckoutProvider = ({ children }: CheckoutProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const initializeSettings = async () => {
+    try {
+      // Primeiro, verifica se existem configurações
+      const { data: existingSettings, error: fetchError } = await supabase
+        .from('checkout_settings')
+        .select('*');
+
+      if (fetchError) throw fetchError;
+
+      // Se não há configurações, criar as padrão
+      if (!existingSettings || existingSettings.length === 0) {
+        const defaultSettings = [
+          { type: 'credit_card' as CheckoutType, enabled: true },
+          { type: 'pix' as CheckoutType, enabled: true },
+          { type: 'manual' as CheckoutType, enabled: true }
+        ];
+
+        const { data: newSettings, error: insertError } = await supabase
+          .from('checkout_settings')
+          .insert(defaultSettings)
+          .select('*');
+
+        if (insertError) throw insertError;
+        setSettings(newSettings || []);
+      } else {
+        setSettings(existingSettings);
+      }
+    } catch (err: any) {
+      console.error('Error initializing checkout settings:', err);
+      setError('Não foi possível inicializar as configurações de checkout');
+      toast.error('Erro ao carregar configurações de checkout');
+    }
+  };
+
   const fetchSettings = async () => {
     try {
       setIsLoading(true);
@@ -25,7 +60,11 @@ export const CheckoutProvider = ({ children }: CheckoutProviderProps) => {
 
       if (fetchError) throw fetchError;
 
-      setSettings(data || []);
+      if (!data || data.length === 0) {
+        await initializeSettings();
+      } else {
+        setSettings(data);
+      }
     } catch (err: any) {
       console.error('Error fetching checkout settings:', err);
       setError('Não foi possível carregar as configurações de checkout');
@@ -76,4 +115,4 @@ export const CheckoutProvider = ({ children }: CheckoutProviderProps) => {
       {children}
     </CheckoutContext.Provider>
   );
-}; 
+};
