@@ -12,6 +12,7 @@ import { Layout } from "./components/Layout";
 import Index from "./pages/Index";
 import Auth from "@/pages/Auth";
 import Marketplace from "@/pages/Marketplace";
+import NewAd from "@/pages/NewAd";
 import Profile from "@/pages/Profile";
 import Admin from "@/pages/Admin";
 import AdminManualCredits from "@/pages/AdminManualCredits";
@@ -43,6 +44,7 @@ const App = () => {
                     <Route path="/" element={<Index />} />
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/marketplace" element={<Marketplace />} />
+                    <Route path="/marketplace/new" element={<NewAd />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/ad/:id" element={<AdDetails />} />
                     <Route path="/messages" element={<Messages />} />
