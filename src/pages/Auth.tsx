@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -12,12 +13,13 @@ import { useUser } from "@/contexts/user/UserContext";
 const Auth = () => {
   const navigate = useNavigate();
   const { login } = useUser();
-  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [activeTab, setActiveTab] = useState<"login" | "signup" | "reset">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [apartment, setApartment] = useState("");
   const [block, setBlock] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -76,6 +78,32 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!resetEmail) {
+      toast.error("Por favor, insira seu email.");
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth?tab=reset-password`,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Link de recuperação enviado! Verifique seu email.");
+      setResetEmail("");
+    } catch (error: any) {
+      console.error("Erro ao enviar email de recuperação:", error.message);
+      toast.error(`Erro ao enviar email de recuperação: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
       <div className="w-full max-w-md">
@@ -89,10 +117,11 @@ const Auth = () => {
         </div>
 
         <Card className="border-none shadow-lg">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "signup")}>
-            <TabsList className="grid grid-cols-2 w-full">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "signup" | "reset")}>
+            <TabsList className="grid grid-cols-3 w-full">
               <TabsTrigger value="login">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Cadastrar</TabsTrigger>
+              <TabsTrigger value="reset">Recuperar</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
@@ -118,16 +147,13 @@ const Auth = () => {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Senha</Label>
-                      <a 
-                        href="#" 
+                      <button 
+                        type="button"
                         className="text-sm text-primary hover:underline"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          toast.info("Função de recuperar senha será implementada em breve!");
-                        }}
+                        onClick={() => setActiveTab("reset")}
                       >
                         Esqueceu a senha?
-                      </a>
+                      </button>
                     </div>
                     <Input
                       id="password"
@@ -222,6 +248,47 @@ const Auth = () => {
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Cadastrando..." : "Cadastrar"}
+                  </Button>
+                </CardFooter>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="reset">
+              <form onSubmit={handlePasswordReset}>
+                <CardHeader>
+                  <CardTitle>Recuperar senha</CardTitle>
+                  <CardDescription>
+                    Digite seu email para receber um link de recuperação
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email">Email</Label>
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex flex-col space-y-4">
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Enviando..." : "Enviar link de recuperação"}
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setActiveTab("login")}
+                  >
+                    Voltar ao login
                   </Button>
                 </CardFooter>
               </form>
